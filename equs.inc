@@ -9,31 +9,33 @@
 
 			XREF		STAVAR
 			XREF		ACCS
-			
-RAM_Top:		EQU		0B0000h	; Initial value of HIMEM
+
+; for a 2MB configuration, RAM is from 0x200000 to 0x21FFFF
+
+RAM_Top:		EQU		$21FFFF	; Initial value of HIMEM
 ;Stack_Top:		EQU		0000h	; Stack at top
 SIZEW:			EQU		3	; Size of a word (3 for ADL mode)
-	
+
 ; For GPIO
 ; PA not available on eZ80L92
 ;
-PA_DR:			EQU		96h
-PA_DDR:			EQU		97h
-PA_ALT1:		EQU		98h
-PA_ALT2:		EQU		99h
-PB_DR:          	EQU		9Ah
-PB_DDR:        	 	EQU		9Bh
-PB_ALT1:        	EQU		9Ch
-PB_ALT2:        	EQU		9Dh
-PC_DR:          	EQU		9Eh
-PC_DDR:         	EQU		9Fh
-PC_ALT1:        	EQU		A0h
-PC_ALT2:        	EQU		A1h
-PD_DR:          	EQU		A2h
-PD_DDR:			EQU		A3h
-PD_ALT1:		EQU		A4h
-PD_ALT2:		EQU		A5h
-	
+PA_DR:			EQU		096h
+PA_DDR:			EQU		097h
+PA_ALT1:		EQU		098h
+PA_ALT2:		EQU		099h
+PB_DR:          	EQU		09Ah
+PB_DDR:        	 	EQU		09Bh
+PB_ALT1:        	EQU		09Ch
+PB_ALT2:        	EQU		09Dh
+PC_DR:          	EQU		09Eh
+PC_DDR:         	EQU		09Fh
+PC_ALT1:        	EQU		0A0h
+PC_ALT2:        	EQU		0A1h
+PD_DR:          	EQU		0A2h
+PD_DDR:			EQU		0A3h
+PD_ALT1:		EQU		0A4h
+PD_ALT2:		EQU		0A5h
+
 GPIOMODE_OUT:		EQU		0	; Output
 GPIOMODE_IN:		EQU		1	; Input
 GPIOMODE_DIO:		EQU		2	; Open Drain IO
@@ -44,7 +46,7 @@ GPIOMODE_INTAL:		EQU		6	; Interrupt, Active Low
 GPIOMODE_INTAH:		EQU		7	; Interrupt, Active High
 GPIOMODE_INTFE:		EQU		8	; Interrupt, Falling Edge
 GPIOMODE_INTRE:		EQU		9	; Interrupt, Rising Edge
-	
+
 ; Originally in ram.asm
 ;
 OC:			EQU     STAVAR+15*4     ; CODE ORIGIN (O%)
@@ -56,3 +58,10 @@ VDU_BUFFER:		EQU	ACCS		; Storage for VDU commands
 CR:			EQU     0DH
 LF:			EQU     0AH
 ESC:			EQU     1BH
+SINGLE_QUOTE		EQU 	27H
+
+
+sysvar_vpd_pflags:	EQU	0 ; MOS params that will be removed when converted back to cp/m
+sysvar_audioSuccess:	EQU	0 ; MOS params that will be removed when converted back to cp/m
+sysvar_scrpixelIndex:	EQU	0 ; MOS params that will be removed when converted back to cp/m
+sysvar_scrchar:		EQU	0 ; MOS params that will be removed when converted back to cp/m

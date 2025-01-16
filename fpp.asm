@@ -14,11 +14,13 @@
 
 			.ASSUME	ADL = 1
 
-			SEGMENT CODE
-				
+			INCLUDE "macros.inc"
+
+			section	.text, "ax", @progbits
+
 			XDEF	FPP
 			XDEF	DLOAD5
-			XDEF	DLOAD5_SPL			
+			XDEF	DLOAD5_SPL
 ;
 ;BINARY FLOATING POINT REPRESENTATION:
 ;   32 BIT SIGN-MAGNITUDE NORMALIZED MANTISSA
@@ -82,7 +84,7 @@ DISPAT:			PUSH    HL
 			LD	BC, 3		; C = 3
 			LD	B, A 		; B = op-code
 			MLT 	BC 		;BC = op-code * 3
-			ADD	HL, BC 		;Add to table base 
+			ADD	HL, BC 		;Add to table base
 			LD	HL, (HL)	;Get the routine address (24-bit)
 
 ;        		ADD     A, A            ;A = op-code * 2
@@ -153,7 +155,7 @@ RTABLE:			DW24  FAND            ;AND (FLOATING-POINT)
         		DW24  FEOR            ;EOR
         		DW24  FMOD            ;MOD
         		DW24  FOR             ;OR
-        		DW24  FLE             ;<= 
+        		DW24  FLE             ;<=
         		DW24  FNE             ;<>
         		DW24  FGE             ;>=
         		DW24  FLT             ;<
@@ -1886,7 +1888,7 @@ FCP:			CALL    FCP1
 FCP0:			LD      A,C
         		CP      B               ;COMPARE EXPONENTS
         		RET     NZ
-ICP0:			
+ICP0:
 			SBC.S   HL,DE           ;COMP MANTISSA MSB
         		ADD.S   HL,DE
         		RET     NZ
@@ -2044,16 +2046,16 @@ RATIO:			CALL    PUSH5           ;SAVE X
 ;       so must contain only innocuous bytes!
 ;
 POLY:			LD      IX, 3				; Advance the SP to the return address
-        		ADD     IX, SP				
+        		ADD     IX, SP
         		EX      (SP), IX			; IX: Points to the inline list of coefficients
-;		
+;
         		CALL    DLOAD5          		; Load the first coefficient from (IX)
 POLY1:			CALL    FMUL
         		LD      DE, 5				; Skip to the next coefficient
-        		ADD     IX, DE		
+        		ADD     IX, DE
         		CALL    DLOAD5          		; Load the second coefficient from (IX)
         		EX      (SP), IX			; Restore the SP just in case we need to return
-        		INC     B		
+        		INC     B
         		DEC     B               		; Test B for end byte (80h)
         		JP      M,FADD				; Yes, so add and return
         		CALL    FADD				; No, so add
@@ -2113,7 +2115,7 @@ POWR14:			CALL    SWAP
 ;     Destroys: A,D,E,H,L,D',E',H',L',F
 ;
 DIVA:			OR      A               ;CLEAR CARRY
-DIV0:			
+DIV0:
 			SBC.S   HL,BC           ;DIVIDEND-DIVISOR
         		EXX
         		SBC.S   HL,BC
@@ -2132,7 +2134,7 @@ DIVC:			RL      E               ;SHIFT RESULT INTO DE
         		EXX
         		INC     A
         		RET     P
-DIVB:			
+DIVB:
 			ADC.S   HL,HL           ;DIVIDEND*2
         		EXX
         		ADC.S   HL,HL
@@ -2180,7 +2182,7 @@ MULB:			EXX
 ;             B'C'BCH'L'HL initialised to 0
 ;   Destroys: A,B,C,D,E,H,L,B',C',D',E',H',L',F
 ;
-SQR1:			
+SQR1:
 			SBC.S   HL,BC
         		EXX
         		SBC.S   HL,BC
@@ -2231,7 +2233,7 @@ SQR3:			OR      A
         		INC     C
         		JP      SQR2
 ;
-SQRB:			
+SQRB:
 			ADD.S   HL,HL
         		EXX
         		ADC.S   HL,HL

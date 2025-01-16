@@ -5,25 +5,24 @@
 ; Last Updated:	12/05/2023
 ;
 ; Modinfo:
-			
+
 			.ASSUME	ADL = 1
-				
+
 			INCLUDE	"equs.inc"
 			INCLUDE "macros.inc"
-			INCLUDE "mos_api.inc"	; In MOS/src
-		
-			SEGMENT CODE
-			
+
+			section	.text, "ax", @progbits
+
 			XDEF	SOUND
-			
+
 			XREF	COMMA
 			XREF	EXPR_W2
 			XREF	XEQ
 			XREF	LTRAP
 			XREF	OSWRCH
 			XREF	VDU_BUFFER
-			
-				
+
+
 ; SOUND channel,volume,pitch,duration
 ; volume: 0 (off) to -15 (full volume)
 ; pitch: 0 - 255
@@ -44,15 +43,15 @@ SOUND:			CALL	EXPR_W2			; DE: Channel/Control, HL: Volume
 			JP	NC, XEQ			; Out of bounds, do nothing
 ;
 ; Store	in VDU vars
-; 
+;
 			LD	C, A			; Store Volume in C
 			LD	A, L
 			LD	(VDU_BUFFER+0), A	; Channel
 			XOR	A
 			LD	(VDU_BUFFER+1), A	; Waveform
-; 
+;
 ; Calculate the volume
-; 
+;
 			LD	B, 6			; C already contains the volume
 			MLT	BC			; Multiply by 6 (0-15 scales to 0-90)
 			LD	A, C
@@ -79,7 +78,7 @@ SOUND:			CALL	EXPR_W2			; DE: Channel/Control, HL: Volume
 			LD	(VDU_BUFFER+5), BC
 ;
 			PUSH	IX			; Get the system vars in IX
-			MOSCALL	mos_sysvars		; Reset the semaphore
+			; MOSCALL	mos_sysvars		; Reset the semaphore
 SOUND0:			RES.LIL	3, (IX+sysvar_vpd_pflags)
 ;
 			VDU	23			; Send the sound command
@@ -95,8 +94,8 @@ SOUND0:			RES.LIL	3, (IX+sysvar_vpd_pflags)
 ;
 ; Wait for acknowledgement
 ;
-$$:			BIT.LIL	3, (IX+sysvar_vpd_pflags)
-			JR	Z, $B			; Wait for the result
+; $$:			BIT.LIL	3, (IX+sysvar_vpd_pflags)
+			; JR	Z, $B			; Wait for the result
 			CALL	LTRAP			; Check for ESC
 			LD.LIL	A, (IX+sysvar_audioSuccess)
 			AND	A			; Check if VDP has queued the note
@@ -114,15 +113,15 @@ $$:			BIT.LIL	3, (IX+sysvar_vpd_pflags)
 ;
 ;	2	3	4	5	6	7	8
 ;
-; B	1	49	97	145	193	241	
-; A#	0	45	93	141	189	237	
-; A		41	89+	137	185	233	
-; G#		37	85	133	181	229	
-; G		33	81	129	177	225	
-; F#		29	77	125	173	221	
-; F		25	73	121	169	217	
-; E		21	69	117	165	213	
-; D#		17	65	113	161	209	
+; B	1	49	97	145	193	241
+; A#	0	45	93	141	189	237
+; A		41	89+	137	185	233
+; G#		37	85	133	181	229
+; G		33	81	129	177	225
+; F#		29	77	125	173	221
+; F		25	73	121	169	217
+; E		21	69	117	165	213
+; D#		17	65	113	161	209
 ; D		13	61	109	157	205	253
 ; C#		9	57	105	153	201	249
 ; C		5	53*	101	149	197	245
@@ -158,6 +157,6 @@ SOUND_FREQ_LOOKUP:	DW	 117,  118,  120,  122,  123,  131,  133,  135
 			DW	3091, 3136, 3182, 3228, 3275, 3322, 3371, 3420
 			DW	3470, 3520, 3571, 3623, 3676, 3729, 3784, 3839
 			DW	3894, 3951, 4009, 4067, 4126, 4186, 4247, 4309
-			DW	4371, 4435, 4499, 4565, 4631, 4699, 4767, 4836	
+			DW	4371, 4435, 4499, 4565, 4631, 4699, 4767, 4836
 
 

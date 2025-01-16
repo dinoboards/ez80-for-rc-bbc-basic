@@ -8,39 +8,39 @@
 ; Modinfo:
 ; 11/06/2023:	Modified to run in ADL mode
 
-EXREG:			MACRO	rp1, rp2
-			PUSH 	rp1 
+.macro			EXREG			rp1 rp2
+			PUSH 	rp1
 			POP	rp2
-			ENDMACRO 
-	
-ADD8U_DE:		MACRO 	reg
-			ADD	A, E 
-			LD	E, A 
+.endm
+
+.macro			ADD8U_DE			reg
+			ADD	A, E
+			LD	E, A
 			ADC	A, D
 			SUB	E
-			LD	D, A 
-			ENDMACRO 
+			LD	D, A
+.endm
 
-ADD8U_HL:		MACRO 	reg
-			ADD	A, L 
-			LD	L, A 
+.macro			ADD8U_HL			reg
+			ADD	A, L
+			LD	L, A
 			ADC	A, H
 			SUB	L
-			LD	H, A 
-			ENDMACRO 
+			LD	H, A
+.endm
 
-VDU:			MACRO	val
-			LD	A, val
-			CALL	OSWRCH
-			ENDMACRO
+.macro			VDU			val
+			; LD	A, val
+			; CALL	OSWRCH
+.endm
 
-SET_GPIO:		MACRO	reg, val
+.macro			SET_GPIO		reg val
 			IN0	A,(reg)
 			OR	val
 			OUT0	(reg),A
-			ENDMACRO
-				
-RES_GPIO:		MACRO	reg, val
+.endm
+
+.macro			RES_GPIO		reg val
 			PUSH	BC
 			LD	A, val
 			CPL
@@ -49,4 +49,8 @@ RES_GPIO:		MACRO	reg, val
 			AND	C
 			OUT0	(reg),A
 			POP	BC
-			ENDMACRO			
+.endm
+
+.macro			DW24  addr
+			d24	\addr
+.endm

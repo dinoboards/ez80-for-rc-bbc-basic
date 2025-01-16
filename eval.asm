@@ -16,10 +16,10 @@
 
 			INCLUDE	"equs.inc"
 			INCLUDE "macros.inc"
-			INCLUDE "mos_api.inc"	; In MOS/src
 
-			SEGMENT CODE
-				
+			section	.text, "ax", @progbits
+
+
 			XDEF	EXPR
 			XDEF	EXPRN
 			XDEF	EXPRI
@@ -44,7 +44,8 @@
 			XDEF	BRAKET
 			XDEF	NXT
 			XDEF	COUNT0
-				
+			XDEF	INKEY1
+
 			XREF	ADVAL
 			XREF	FN
 			XREF	POINT
@@ -217,17 +218,17 @@ EXPR1A:			CP      ANDK			; Is operator AND?
 ; Level 5: Comparisons
 ;
 EXPR2:			CALL    EXPR3			; Get first operator by calling Level 4
-			CALL    RELOP?			; Is it ">", "=" or "<"?
+			CALL    RELOP			; Is it ">", "=" or "<"?
 			RET     NZ			; No, so return
 			LD      B,A			; Store the first operator in B
 			INC     IY              	; Bump over operator
-			CALL    NXT			; 
-			CALL    RELOP?          	; Is it a compound operator?
+			CALL    NXT			;
+			CALL    RELOP          	; Is it a compound operator?
 			JR      NZ,EXPR2B		; No, so skip next bit
 			INC     IY			; Bump over operator
 			CP      B			; Compare with first
 			JP      Z,SYNTAX        	; Trap illegal combinations ">>", "==", "<<" (but not "><", "=>", "=<")
-			ADD     A,B			
+			ADD     A,B
 			LD      B,A			; B: Unique code for the compound operator
 EXPR2B:			LD      A,B			; A: Code for the operator/compound operator
 			EX      AF,AF'
@@ -303,7 +304,7 @@ EXPR3S:			EX      AF,AF'			; Handle string concatenation
 			LD	A,E			;  E: Length of the first string
 			LD      DE,ACCS
 			LD	E,A 			; DE: Pointer to the end of the first string
-			LD      A,C			
+			LD      A,C
 			OR      A
 			JR      Z,EXP3S3
 			LD      L,A             	; Source
@@ -345,7 +346,7 @@ EXPR4B:			CALL    SAVE
 ;
 EXPR5:			CALL    ITEM			; Get variable
 			OR      A               	; Test type
-			EX      AF,AF'          	; Save type 
+			EX      AF,AF'          	; Save type
 EXPR5A:			CALL    NXT			; Skip spaces
 			CP      '^'			; Is the operator "^"?
 			RET     NZ			; No, so return
@@ -363,15 +364,15 @@ EXPRN:			CALL    EXPR			; Evaluate expression
 			RET     P			; And return if it is a number
 			JR      TYPE_			; Otherwise Error: "Type mismatch"
 ;
-; Evaluate a fixed-point expression 
+; Evaluate a fixed-point expression
 ;
 EXPRI:			CALL    EXPR			; Evaluate the expression
 			EX      AF,AF'			; Get the type
 			JP      P,SFIX			; If it is numeric, then convert to fixed-point notation
 			JR      TYPE_			; Otherwise Error: "Type mismatch"
-;	
+;
 ; Evaluate a string expression
-;	
+;
 EXPRS:			CALL    EXPR			; Evaluate the expression
 			EX      AF,AF'			; Get the type
 			RET     M			; And return if it is a string
@@ -384,21 +385,21 @@ ITEMN:			CALL    ITEM			; Get the variable
 			RET     P			; And return if it is a number
 			JR      TYPE_			; Otherwise Error: "Type mismatch"
 ;
-; Get a fixed-point variable 
+; Get a fixed-point variable
 ;
 ITEMI:			CALL    ITEM			; Get the variable
 			OR      A			; Test the type
 			JP      P,SFIX			; If it is numeric, then convert to fixed-point notation
 			JR      TYPE_			; Otherwise Error: "Type mismatch"
 ;
-; Get a string variable 
+; Get a string variable
 ;
 ITEMS:			CALL    ITEM			; Get the variable
 			OR      A			; Test the type
 			RET     M			; If it is a string, then return
 ;							; Otherwise
 TYPE_:			LD      A,6			; Error: "Type mismatch"
-			JP      ERROR_           	
+			JP      ERROR_
 ;
 ; Evaluate a bracketed expression
 ;
@@ -447,7 +448,7 @@ BIN:			CALL    ZERO			; Set result to 0
 			JR	C,BADBIN		; If invalid BIN character then Error: "Bad Binary"
 BIN1:			INC	IY			; Move pointer to next character
 			RRCA				; Bit 0 of ASCII '0' is 0, and ASCII '1' is 1, so shift that bit into carry
-			EXX				; 
+			EXX				;
 			ADC.S	HL,HL			; And shift back into into H'L'HL (note the ADC)
 			EXX
 			ADC.S	HL,HL
@@ -470,7 +471,7 @@ MINUS0:			DEC     C			; Check exponent (C)
 			INC     C			; If it is zero, then it's either a FP zero or an integer
 			JR      Z,NEGATE        	; So do an integer negation
 ;
-			LD      A,H			; Do a FP negation by 
+			LD      A,H			; Do a FP negation by
 			XOR     80H             	; Toggling the sign bit (H)
 			LD      H,A
 			XOR     A               	; Numeric marker
@@ -491,7 +492,7 @@ NEGATE:			EXX				; This section does a two's complement negation on H'L'HLC
 			CPL
 			LD      L,A
 ADD1:			EXX				; Then add 1
-			INC     HL			
+			INC     HL
 			LD      A,H
 			OR      L
 			EXX
@@ -524,9 +525,9 @@ ITEM:			CALL    CHECK			; Check there's at least a page of free memory left and 
 			JR      Z,CONS          	; Start of a string constant
 			CP      TCMD			; Is it out of range of the function table?
 			JP      NC,SYNTAX       	; Error: "Syntax Error"
-			CP      FUNTOK			; If it is in range, then 
+			CP      FUNTOK			; If it is in range, then
 			JP      NC,DISPAT       	; It's a function
-			DEC     IY			
+			DEC     IY
 			CP      ':'
 			JR      NC,ITEM2		; VARIABLE?
 			CP      '0'
@@ -599,7 +600,7 @@ CONS2:			LD      A,(IY)			; Fetch the next character
 			CP      '"'			; Check for end quote?
 			INC     IY			; Increment the pointer
 			JR      Z,CONS1			; It is the end of string marker so jump to the end routine
-			DEC     IY			; 
+			DEC     IY			;
 			LD      A,80H           	; String marker
 			RET
 ;
@@ -679,27 +680,27 @@ LOADS2:			LD      A,(HL)
 POS:			CALL    GETCSR			; Return the horizontal cursor position
 			EX      DE,HL			;  L: The X cursor position
 			JP      COUNT1			; Return an 8-bit value
-;			
+;
 VPOS:			CALL    GETCSR			; Return the vertical cursor position
 			JP      COUNT1			; Return an 8-bit value
-;			
+;
 EOF:			CALL    CHANEL			; Check for EOF
 			CALL    OSSTAT
 			JP      Z,TRUE			; Yes, so return true
 			JP      ZERO			; Otherwise return false (zero)
-;			
+;
 BGET:			CALL    CHANEL          	; Channel number
 			CALL    OSBGET
 			LD      L,A
 			JP      COUNT0			; Return an 8-bit value
-;			
+;
 INKEY:			CALL    ITEMI			; Get the argument
 			BIT	7, H			; Check the sign
 			EXX				; HL: The argument
 			JP	NZ, INKEYM		; It's negative, so do INKEY(-n)
 			CALL	INKEY0 			; Do INKEY(n)
 			JR      ASC0			; Return a numeric value
-;			
+;
 GET:			CALL    NXT			; Skip whitespace
 			CP      '('			; Is it GET(
 			JR      NZ,GET0			; No, so get a keyboard character
@@ -710,9 +711,9 @@ GET:			CALL    NXT			; Skip whitespace
 			IN      L,(C)           	;  L: Input from port BC
 			JR      COUNT0			; Return an 8-bit value
 ;
-GET0:			CALL    GETS			; Read the keyboard character			
+GET0:			CALL    GETS			; Read the keyboard character
 			JR      ASC1			; And return the value
-;			
+;
 ASC:			CALL    ITEMS			; Get the string argument argument
 ASC0:			XOR     A			; Quickly check the length of the string in ACCS
 			CP      E			; Is the pointer 0
@@ -723,19 +724,19 @@ ASC1:			LD      HL,(ACCS)		;  L: The first character (H will be discarded in COU
 LEN:			CALL    ITEMS			; Get the string argument
 			EX      DE,HL			; HL: Pointer into ACCS
 			JR      COUNT0			; Return L
-;			
+;
 LOMEMV:			LD      HL,(LOMEM)		; Return the LOMEM system variable
 			LD	A, (LOMEM+2)
 			JR      COUNT2			; A 24-bit value
-;			
+;
 HIMEMV:			LD      HL,(HIMEM)		; Return the HIMEM system variable
 			LD	A, (HIMEM+2)
 			JR      COUNT2			; A 24-bit value
-;			
+;
 PAGEV:			LD    	HL,(PAGE_)		; Return the PAGE system variable
 			LD	A, (PAGE_+2)		; A 24-bit value
 			JR      COUNT2
-;			
+;
 TOPV:			LD      A,(IY)			; Return the TOP system variable
 			INC     IY              	; Skip "P"
 			CP      'P'
@@ -743,13 +744,13 @@ TOPV:			LD      A,(IY)			; Return the TOP system variable
 			LD      HL,(TOP)
 			LD	A, (TOP+2)
 			JR      COUNT2
-;			
+;
 ERLV:			LD      HL,(ERL)		; Return the error line
 			JR      COUNT1			; A 16-bit value
-;			
+;
 ERRV:			LD      HL,(ERR)		; Return the error value
 			JR      COUNT0			; An 8-bit value
-;			
+;
 COUNTV:			LD      HL,(COUNT)		; Return the print position sysvar
 
 COUNT0:			LD      H,0			; Return L
@@ -760,10 +761,10 @@ COUNT1:			EXX				; Return HL
 			LD      L,A
 			RET
 COUNT2:			EXX
-			LD	L,A 
-			XOR	A 
+			LD	L,A
+			XOR	A
 			LD	C,A			; Integer marker
-			LD	H,A 
+			LD	H,A
 			RET
 ;
 ;OPENIN - Open a file for reading.
@@ -773,7 +774,7 @@ COUNT2:			EXX
 ;
 OPENOT:			XOR     A			; Open for writing
 			JR	OPENIN_1
-;			
+;
 OPENUP:			LD      A,2			; Open for reading / writing
 			JR	OPENIN_1
 ;
@@ -1162,7 +1163,7 @@ SRCH1:			PUSH    BC
 			CP      B			; Bug fix
 			INC     B			; Bug fix
 			JR      C,SRCH4			; Bug fix
-;			
+;
 			PUSH    BC
 			PUSH    DE
 			PUSH    HL
@@ -1220,7 +1221,8 @@ INKEY1:			LD      DE,ACCS			; Store the result in the string accumulator
 ; INKEYM - Check immediately whether a given key is being pressed
 ; Result is integer numeric
 ;
-INKEYM:			MOSCALL	mos_getkbmap		; Get the base address of the keyboard
+INKEYM:			JP	ZERO
+			;MOSCALL	mos_getkbmap		; Get the base address of the keyboard
 			INC	HL			; Index from 0
 			LD	A, L			; Negate the LSB of the answer
 			NEG
@@ -1231,13 +1233,13 @@ INKEYM:			MOSCALL	mos_getkbmap		; Get the base address of the keyboard
 			LD	HL, BITLOOKUP		; HL: The bit lookup table
 			LD	DE, 0
 			LD	A, C
-			AND	00000111b		; Just need the first three bits
+			AND	0b00000111		; Just need the first three bits
 			LD	E, A			; DE: The bit number
 			ADD	HL, DE
 			LD	B, (HL)			;  B: The mask
 ;
 			LD	A, C			; Fetch the keycode again
-			AND	01111000b		; And divide by 8
+			AND	0b01111000		; And divide by 8
 			RRCA
 			RRCA
 			RRCA
@@ -1266,7 +1268,7 @@ MIDS:			CALL    EXPRSC			; Get the first string expression
 			EXX
 			OR      A			; If the start index is 0, then we don't need to do the next bit
 			JR      Z,MIDS1
-			DEC     A			
+			DEC     A
 			LD      L,A			; L: The start index - 1
 			SUB     E			; Subtract from the string length
 			LD      E,0			; Preemptively set the string length to 0
@@ -1491,7 +1493,7 @@ STR1:			LD      A,80H           ;STRING MARKER
 			ADD     A,4
 STR2:			CP      E
 			JR      Z,STR1
-			EX      DE,HL	
+			EX      DE,HL
 			LD      (HL),' '        ;TRAILING SPACE
 			INC     HL
 			EX      DE,HL
@@ -1604,7 +1606,7 @@ BINDIG:			LD	A,(IY)
 			CCF
 			RET
 ;
-RELOP?:			CP      '>'
+RELOP:			CP      '>'
 			RET     NC
 			CP      '='
 			RET     NC
@@ -1669,8 +1671,8 @@ DOIT:			EX      AF,AF'
 ; Returns:
 ;  - A: The non-space character found
 ; - IY: Points to the character before that
-; 
-NXT:			LD      A,(IY)			; Fetch the character	
+;
+NXT:			LD      A,(IY)			; Fetch the character
 			CP      ' '			; If it is space, then return
 			RET     NZ
 			INC     IY			; Increment the pointer and
@@ -1684,7 +1686,7 @@ DISPAT:			PUSH    HL
 			SUB     FUNTOK
 			LD      HL,FUNTBL
 DISPT0:			PUSH    BC
-			
+
 			LD	BC, 3
 			LD	B, A
 			MLT	BC

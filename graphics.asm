@@ -6,15 +6,14 @@
 ;
 ; Modinfo:
 ; 07/06/2023:	Modified to run in ADL mode
-			
+
 			.ASSUME	ADL = 1
-				
+
 			INCLUDE	"equs.inc"
 			INCLUDE "macros.inc"
-			INCLUDE "mos_api.inc"	; In MOS/src
-		
-			SEGMENT CODE
-				
+
+			section	.text, "ax", @progbits
+
 			XDEF	CLG
 			XDEF	CLRSCN
 			XDEF	MODE
@@ -25,7 +24,7 @@
 			XDEF	DRAW
 			XDEF	POINT
 			XDEF	GETSCHR
-			
+
 			XREF	OSWRCH
 			XREF	ASC_TO_NUMBER
 			XREF	EXTERR
@@ -40,7 +39,7 @@
 			XREF	CRLF
 			XREF	EXPR_W2
 			XREF	INKEY1
-			
+
 ; CLG: clears the graphics area
 ;
 CLG:			VDU	10h
@@ -50,36 +49,36 @@ CLG:			VDU	10h
 ;
 CLRSCN:			LD	A, 0Ch
 			JP	OSWRCH
-				
+
 ; MODE n: Set video mode
 ;
 MODE:			PUSH	IX			; Get the system vars in IX
-			MOSCALL	mos_sysvars		; Reset the semaphore
+			;MOSCALL	mos_sysvars		; Reset the semaphore
 			RES	4, (IX+sysvar_vpd_pflags)
 			CALL    EXPRI
 			EXX
 			VDU	16H			; Mode change
 			VDU	L
-			MOSCALL	mos_sysvars		
-$$:			BIT	4, (IX+sysvar_vpd_pflags)
-			JR	Z, $B			; Wait for the result			
+			;MOSCALL	mos_sysvars
+; $$:			BIT	4, (IX+sysvar_vpd_pflags)
+; 			JR	Z, $B			; Wait for the result
 			POP	IX
 			JP	XEQ
-			
+
 ; GET(x,y): Get the ASCII code of a character on screen
 ;
 GETSCHR:		INC	IY
 			CALL    EXPRI      		; Get X coordinate
 			EXX
 			LD	(VDU_BUFFER+0), HL
-			CALL	COMMA		
+			CALL	COMMA
 			CALL	EXPRI			; Get Y coordinate
-			EXX 
+			EXX
 			LD	(VDU_BUFFER+2), HL
-			CALL	BRAKET			; Closing bracket		
+			CALL	BRAKET			; Closing bracket
 ;
 			PUSH	IX			; Get the system vars in IX
-			MOSCALL	mos_sysvars		; Reset the semaphore
+			; MOSCALL	mos_sysvars		; Reset the semaphore
 			RES	1, (IX+sysvar_vpd_pflags)
 			VDU	23
 			VDU	0
@@ -88,15 +87,15 @@ GETSCHR:		INC	IY
 			VDU	(VDU_BUFFER+1)
 			VDU	(VDU_BUFFER+2)
 			VDU	(VDU_BUFFER+3)
-$$:			BIT	1, (IX+sysvar_vpd_pflags)
-			JR	Z, $B			; Wait for the result
+; $$:			BIT	1, (IX+sysvar_vpd_pflags)
+; 			JR	Z, $B			; Wait for the result
 			LD	A, (IX+sysvar_scrchar)	; Fetch the result in A
 			OR	A			; Check for 00h
 			SCF				; C = character map
-			JR	NZ, $F			; We have a character, so skip next bit
+			; JR	NZ, $F			; We have a character, so skip next bit
 			XOR	A			; Clear carry
 			DEC	A			; Set A to FFh
-$$:			POP	IX			
+			POP	IX
 			JP	INKEY1			; Jump back to the GET command
 
 ; POINT(x,y): Get the pixel colour of a point on screen
@@ -104,14 +103,14 @@ $$:			POP	IX
 POINT:			CALL    EXPRI      		; Get X coordinate
 			EXX
 			LD	(VDU_BUFFER+0), HL
-			CALL	COMMA		
+			CALL	COMMA
 			CALL	EXPRI			; Get Y coordinate
-			EXX 
+			EXX
 			LD	(VDU_BUFFER+2), HL
-			CALL	BRAKET			; Closing bracket		
+			CALL	BRAKET			; Closing bracket
 ;
 			PUSH	IX			; Get the system vars in IX
-			MOSCALL	mos_sysvars		; Reset the semaphore
+			; MOSCALL	mos_sysvars		; Reset the semaphore
 			RES	2, (IX+sysvar_vpd_pflags)
 			VDU	23
 			VDU	0
@@ -120,13 +119,13 @@ POINT:			CALL    EXPRI      		; Get X coordinate
 			VDU	(VDU_BUFFER+1)
 			VDU	(VDU_BUFFER+2)
 			VDU	(VDU_BUFFER+3)
-$$:			BIT	2, (IX+sysvar_vpd_pflags)
-			JR	Z, $B			; Wait for the result
+; $$:			BIT	2, (IX+sysvar_vpd_pflags)
+			; JR	Z, $B			; Wait for the result
 ;
 ; Return the data as a 1 byte index
 ;
 			LD	L, (IX+(sysvar_scrpixelIndex))
-			POP	IX	
+			POP	IX
 			JP	COUNT0
 
 
@@ -136,7 +135,7 @@ $$:			BIT	2, (IX+sysvar_vpd_pflags)
 ;
 COLOUR:			CALL	EXPRI			; The colour / mode
 			EXX
-			LD	A, L 
+			LD	A, L
 			LD	(VDU_BUFFER+0), A	; Store first parameter
 			CALL	NXT			; Are there any more parameters?
 			CP	','
@@ -144,7 +143,7 @@ COLOUR:			CALL	EXPRI			; The colour / mode
 ;
 			VDU	11h			; Just set the colour
 			VDU	(VDU_BUFFER+0)
-			JP	XEQ			
+			JP	XEQ
 ;
 COLOUR_1:		CALL	COMMA
 			CALL	EXPRI			; Parse R (OR P)
@@ -172,10 +171,10 @@ COLOUR_2:		CALL	COMMA
 			CALL	EXPRI			; Parse B
 			EXX
 			LD	A, L
-			LD	(VDU_BUFFER+3), A							
+			LD	(VDU_BUFFER+3), A
 			VDU	13h			; VDU:COLOUR
 			VDU	(VDU_BUFFER+0)		; Logical Colour
-			VDU	FFh			; Physical Colour (-1 for RGB mode)
+			VDU	0FFh			; Physical Colour (-1 for RGB mode)
 			VDU	(VDU_BUFFER+1)		; R
 			VDU	(VDU_BUFFER+2)		; G
 			VDU	(VDU_BUFFER+3)		; B
@@ -185,8 +184,8 @@ COLOUR_2:		CALL	COMMA
 ;
 GCOL:			CALL	EXPRI			; Parse MODE
 			EXX
-			LD	A, L 
-			LD	(VDU_BUFFER+0), A	
+			LD	A, L
+			LD	(VDU_BUFFER+0), A
 			CALL	COMMA
 ;
 			CALL	EXPRI			; Parse Colour
@@ -198,16 +197,16 @@ GCOL:			CALL	EXPRI			; Parse MODE
 			VDU	(VDU_BUFFER+0)		; Mode
 			VDU	(VDU_BUFFER+1)		; Colour
 			JP	XEQ
-			
+
 ; PLOT mode,x,y
 ;
 PLOT:			CALL	EXPRI		; Parse mode
-			EXX					
+			EXX
 			PUSH	HL		; Push mode (L) onto stack
-			CALL	COMMA 	
+			CALL	COMMA
 			CALL	EXPR_W2		; Parse X and Y
 			POP	BC		; Pop mode (C) off stack
-PLOT_1:			VDU	19H		; VDU code for PLOT				
+PLOT_1:			VDU	19H		; VDU code for PLOT
 			VDU	C		;  C: Mode
 			VDU	E		; DE: X
 			VDU	D
@@ -240,6 +239,6 @@ DRAW:			CALL	EXPR_W2		; Get X1 and Y1
 			CALL	EXPR_W2		; Get X2 and Y2
 			POP	BC
 			JR	PLOT_1		; Now DRAW the line to those positions
-			
-			
-			
+
+
+

@@ -9,14 +9,14 @@
 
 			.ASSUME	ADL = 1
 
-			SEGMENT CODE
-			
+			section	.text, "ax", @progbits
+
 			XDEF	ENVEL
 			XDEF	ADVAL
 			XDEF	PUTIMS
-			
+
 			XREF	EXTERR
-			
+
 ENVEL:
 ADVAL:
 PUTIMS:
