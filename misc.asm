@@ -11,8 +11,8 @@
 
 			.ASSUME	ADL = 1
 
-			SEGMENT CODE
-				
+			section	.text, "ax", @progbits
+
 			XDEF	ASC_TO_NUMBER
 			XDEF	SWITCH_A
 			XDEF	NULLTOCR
@@ -22,7 +22,7 @@
 			XDEF	CSTR_FINDCH
 			XDEF	CSTR_ENDSWITH
 			XDEF	CSTR_CAT
-				
+
 			XREF	OSWRCH
 			XREF	KEYWDS
 			XREF	KEYWDL
@@ -44,7 +44,7 @@ ASC_TO_NUMBER:		PUSH	BC			; Preserve BC
 			INC	HL			; Otherwise fall through to ASC_TO_HEX
 ;
 ASC_TO_NUMBER1:		LD	A, (HL)			; Fetch the character
-			CALL    UPPRC			; Convert to uppercase  
+			CALL    UPPRC			; Convert to uppercase
 			SUB	'0'			; Normalise to 0
 			JR 	C, ASC_TO_NUMBER4	; Return if < ASCII '0'
 			CP 	10			; Check if >= 10
@@ -53,11 +53,11 @@ ASC_TO_NUMBER1:		LD	A, (HL)			; Fetch the character
 			CP 	16			; Check for > F
 			JR 	NC, ASC_TO_NUMBER4	; Return if out of range
 ASC_TO_NUMBER2:		EX 	DE, HL 			; Shift DE left 4 times
-			ADD	HL, HL	
-			ADD	HL, HL	
-			ADD	HL, HL	
-			ADD	HL, HL	
-			EX	DE, HL	
+			ADD	HL, HL
+			ADD	HL, HL
+			ADD	HL, HL
+			ADD	HL, HL
+			EX	DE, HL
 			OR      E			; OR the new digit in to the least significant nibble
 			LD      E, A
 			INC     HL			; Onto the next character
@@ -70,8 +70,8 @@ ASC_TO_NUMBER3:		LD	A, (HL)
 			JR	NC, ASC_TO_NUMBER4	; Return if >= 10
 			EX 	DE, HL 			; Stick DE in HL
 			LD	B, H 			; And copy HL into BC
-			LD	C, L	
-			ADD	HL, HL 			; x 2 
+			LD	C, L
+			ADD	HL, HL 			; x 2
 			ADD	HL, HL 			; x 4
 			ADD	HL, BC 			; x 5
 			ADD	HL, HL 			; x 10
@@ -83,7 +83,7 @@ ASC_TO_NUMBER4:		POP	BC 			; Fall through to SKIPSP here
 
 ; Skip a space
 ; HL: Pointer in string buffer
-; 
+;
 SKIPSP:			LD      A, (HL)
 			CP      ' '
 			RET     NZ
@@ -95,8 +95,8 @@ SKIPSP:			LD      A, (HL)
 ;
 SKIPNOTSP:		LD	A, (HL)
 			CP	' '
-			RET	Z 
-			INC	HL 
+			RET	Z
+			INC	HL
 			JR	SKIPNOTSP
 
 ; Convert a character to upper case
@@ -106,7 +106,7 @@ UPPRC:  		AND     7FH
 			CP      '`'
 			RET     C
 			AND     5FH			; Convert to upper case
-			RET			
+			RET
 
 ; Switch on A - lookup table immediately after call
 ;  A: Index into lookup table
@@ -123,61 +123,61 @@ SWITCH_A:		EX	(SP), HL		; Swap HL with the contents of the top of the stack
 
 ; Convert the buffer to a null terminated string and back
 ; HL: Buffer address
-;			
+;
 NULLTOCR:		PUSH 	BC
 			LD	B, 0
-			LD	C, CR 
+			LD	C, CR
 			JR	CRTONULL0
-;			
+;
 CRTONULL:		PUSH	BC
 			LD	B, CR
-			LD	C, 0	
-;			
+			LD	C, 0
+;
 CRTONULL0:		PUSH	HL
 CRTONULL1:		LD	A, (HL)
-			CP 	B 
+			CP 	B
 			JR	Z, CRTONULL2
-			INC	HL 
+			INC	HL
 			JR	CRTONULL1
 CRTONULL2:		LD	(HL), C
-			POP 	HL 
+			POP 	HL
 			POP	BC
 			RET
-			
+
 ; Copy a filename to DE and zero terminate it
 ; HL: Source
 ; DE: Destination (ACCS)
 ;
 CSTR_FNAME:		LD	A, (HL)			; Get source
 			CP	32			; Is it space
-			JR	Z, $F	
+			JR	Z, CSTR_FNAME_SKIP
 			CP	CR			; Or is it CR
-			JR	Z, $F
+			JR	Z, CSTR_FNAME_SKIP
 			LD	(DE), A			; No, so store
 			INC	HL			; Increment
-			INC	DE			
+			INC	DE
 			JR	CSTR_FNAME		; And loop
-$$:			XOR	A			; Zero terminate the target string
+CSTR_FNAME_SKIP:	XOR	A			; Zero terminate the target string
 			LD	(DE), A
 			INC	DE			; And point to next free address
 			RET
-			
+
 ; Copy a CR terminated line to DE and zero terminate it
 ; HL: Source
 ; DE: Destination (ACCS)
 ;
 CSTR_LINE:		LD	A, (HL)			; Get source
 			CP	CR			; Is it CR
-			JR	Z, $F
+			JR	Z, CSTR_LINE_SKIP
 			LD	(DE), A			; No, so store
 			INC	HL			; Increment
-			INC	DE			
+			INC	DE
 			JR	CSTR_LINE		; And loop
-$$:			XOR	A			; Zero terminate the target string
+CSTR_LINE_SKIP:		XOR	A			; Zero terminate the target string
 			LD	(DE), A
 			INC	DE			; And point to next free address
 			RET
-			
+
 ; Find the first occurrence of a character (case sensitive)
 ; HL: Source
 ;  C: Character to find
@@ -191,7 +191,7 @@ CSTR_FINDCH:		LD	A, (HL)			; Get source
 			RET	Z			; Yes, so exit
 			INC	HL
 			JR	CSTR_FINDCH
-			
+
 ; Check whether a string ends with another string (case insensitive)
 ; HL: Source
 ; DE: The substring we want to test with
@@ -209,7 +209,7 @@ CSTR_ENDSWITH:		LD	A, (HL)			; Get the source string byte
 			INC	HL
 			INC	DE
 			JR	CSTR_ENDSWITH		; And loop
-			
+
 ; Concatenate a string onto the end of another string
 ; HL: Source
 ; DE: Second string
@@ -226,4 +226,4 @@ CSTR_CAT_1:		LD	A, (DE)			; Copy the second string onto the end of the first str
 			RET	Z			; And return
 			INC	HL
 			INC	DE
-			JR	CSTR_CAT_1		; Loop until finished						
+			JR	CSTR_CAT_1		; Loop until finished

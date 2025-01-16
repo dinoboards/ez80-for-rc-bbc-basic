@@ -9,13 +9,13 @@
 ; 15/11/2023:	Improved OSLOAD_TXT; now handles LF terminated files, files with no trailing LF or CR/LF at end
 
 			.ASSUME	ADL = 1
-				
+
 			INCLUDE	"equs.inc"
 			INCLUDE "macros.inc"
-			INCLUDE "mos_api.inc"	; In MOS/src
-		
-			SEGMENT CODE
-				
+			; INCLUDE "mos_api.inc"	; In MOS/src
+
+			section	.text, "ax", @progbits
+
 			XDEF	OSWRCH
 			XDEF	OSLINE
 			XDEF	ESCSET
@@ -95,82 +95,84 @@
 OSLINE:			LD 	E, 1			; Default is to clear the buffer
 
 ; Entry point to line editor that does not clear the buffer
-; 
-OSLINE1:		PUSH	IY			
-			PUSH	HL			; Buffer address
-			LD	BC, 256			; Buffer length
-			MOSCALL	mos_editline		; Call the MOS line editor
-			POP	HL			; Pop the address
-			POP	IY
-			PUSH	AF			; Stack the return value (key pressed)
-			CALL	NULLTOCR		; Turn the 0 character to a CR
-			CALL	CRLF			; Display CRLF
-			POP	AF
-			CP	1Bh 			; Check if ESC terminated the input
-			JP	Z, LTRAP1 		; Yes, so do the ESC thing
-			LD	A, (FLAGS)		; Otherwise
-			RES	7, A 			; Clear the escape flag
-			LD	(FLAGS), A 
-			CALL	WAIT_VBLANK 		; Wait a frame 
- 			XOR	A			; Return A = 0
-			LD	(KEYDOWN), A 
-			LD	(KEYASCII), A
-			RET		
+;
+OSLINE1:
+			; TODO: perhaps fine original CP/M code
+			;PUSH	IY
+			;PUSH	HL			; Buffer address
+			;LD	BC, 256			; Buffer length
+			;MOSCALL	mos_editline		; Call the MOS line editor
+			;POP	HL			; Pop the address
+			;POP	IY
+			;PUSH	AF			; Stack the return value (key pressed)
+			;CALL	NULLTOCR		; Turn the 0 character to a CR
+			;CALL	CRLF			; Display CRLF
+			;POP	AF
+			;CP	1Bh 			; Check if ESC terminated the input
+			;JP	Z, LTRAP1 		; Yes, so do the ESC thing
+			;LD	A, (FLAGS)		; Otherwise
+			;RES	7, A 			; Clear the escape flag
+			;LD	(FLAGS), A
+			;CALL	WAIT_VBLANK 		; Wait a frame
+ 			;XOR	A			; Return A = 0
+			;LD	(KEYDOWN), A
+			;LD	(KEYASCII), A
+			RET
 
 ; PUTIME: set current time to DE:HL, in centiseconds.
 ;
-PUTIME:			PUSH 	IX
-			MOSCALL	mos_sysvars
-			LD	(IX + sysvar_time + 0), L
-			LD	(IX + sysvar_time + 1), H
-			LD	(IX + sysvar_time + 2), E
-			LD	(IX + sysvar_time + 3), D
-			POP	IX
+PUTIME:			; PUSH 	IX
+			; MOSCALL	mos_sysvars
+			; LD	(IX + sysvar_time + 0), L
+			; LD	(IX + sysvar_time + 1), H
+			; LD	(IX + sysvar_time + 2), E
+			; LD	(IX + sysvar_time + 3), D
+			; POP	IX
 			RET
 
 ; GETIME: return current time in DE:HL, in centiseconds
 ;
-GETIME:			PUSH 	IX
-			MOSCALL	mos_sysvars
-			LD	L, (IX + sysvar_time + 0)
-			LD	H, (IX + sysvar_time + 1)
-			LD	E, (IX + sysvar_time + 2)
-			LD	D, (IX + sysvar_time + 3)
-			POP	IX
+GETIME:			;PUSH 	IX
+			;MOSCALL	mos_sysvars
+			;LD	L, (IX + sysvar_time + 0)
+			;LD	H, (IX + sysvar_time + 1)
+			;LD	E, (IX + sysvar_time + 2)
+			;LD	D, (IX + sysvar_time + 3)
+			;POP	IX
 			RET
 
 ; PUTCSR: move to cursor to x=DE, y=HL
 ;
-PUTCSR:			LD	A, 1Fh			; TAB
-			RST.LIL	10h
-			LD	A, E			; X
-			RST.LIL 10h
-			LD	A, L			; Y
-			RST.LIL 10h
+PUTCSR:			;LD	A, 1Fh			; TAB
+			;RST.LIL	10h
+			;LD	A, E			; X
+			;RST.LIL 10h
+			;LD	A, L			; Y
+			;RST.LIL 10h
 			RET
 
 ; GETCSR: return cursor position in x=DE, y=HL
 ;
-GETCSR:			PUSH	IX			; Get the system vars in IX
-			MOSCALL	mos_sysvars		; Reset the semaphore
-			RES	0, (IX+sysvar_vpd_pflags)
-			VDU	23
-			VDU	0
-			VDU	vdp_cursor
-$$:			BIT	0, (IX+sysvar_vpd_pflags)
-			JR	Z, $B			; Wait for the result
-			LD 	D, 0
-			LD	H, D
-			LD	E, (IX + sysvar_cursorX)
-			LD	L, (IX + sysvar_cursorY)			
-			POP	IX			
-			RET			
+GETCSR:			;PUSH	IX			; Get the system vars in IX
+			;MOSCALL	mos_sysvars		; Reset the semaphore
+			;RES	0, (IX+sysvar_vpd_pflags)
+			;VDU	23
+			;VDU	0
+			;VDU	vdp_cursor
+$$:			;BIT	0, (IX+sysvar_vpd_pflags)
+			;JR	Z, $B			; Wait for the result
+			;LD 	D, 0
+			;LD	H, D
+			;LD	E, (IX + sysvar_cursorX)
+			;LD	L, (IX + sysvar_cursorY)
+			;POP	IX
+			RET
 
 ; PROMPT: output the input prompt
 ;
 PROMPT: 		LD	A,'>'
 			JP	OSWRCH
-			
+
 ; OSWRCH: Write a character out to the ESP32 VDU handler via the MOS
 ; A: Character to write
 ;
@@ -186,12 +188,12 @@ OSWRCH:			PUSH	HL
 			POP	HL			; Otherwise
 			RST.LIL	10h			; Output the character to MOS
 			RET
-;	
+;
 OSWRCH_BUFFER:		LD	HL, (OSWRCHPT)		; Fetch the pointer buffer
 			LD	(HL), A			; Echo the character into the buffer
 			INC	HL			; Increment pointer
 			LD	(OSWRCHPT), HL		; Write pointer back
-			POP	HL			
+			POP	HL
 			RET
 ;
 OSWRCH_FILE:		PUSH	DE
@@ -204,12 +206,12 @@ OSWRCH_FILE:		PUSH	DE
 ; OSRDCH: Read a character in from the ESP32 keyboard handler
 ; This is only called in GETS (eval.asm)
 ;
-OSRDCH:			MOSCALL	mos_getkey		; Read keyboard
-			CP	1Bh
-			JR	Z, LTRAP1 
+OSRDCH:			;MOSCALL	mos_getkey		; Read keyboard
+			;CP	1Bh
+			;JR	Z, LTRAP1
 			RET
 
-			
+
 ;OSKEY - Read key with time-limit, test for ESCape.
 ;Main function is carried out in user patch.
 ;   Inputs: HL = time limit (centiseconds)
@@ -217,8 +219,8 @@ OSRDCH:			MOSCALL	mos_getkey		; Read keyboard
 ;           If carry set A = character
 ; Destroys: A,H,L,F
 ;
-OSKEY:			CALL	READKEY			; Read the keyboard 
-			JR	Z, $F 			; Skip if we have a key
+OSKEY:			CALL	READKEY			; Read the keyboard
+			JR	Z, .oskey_skip		; Skip if we have a key
 			LD	A, H 			; Check loop counter
 			OR 	L
 			RET 	Z 			; Return, we've not got a key at this point
@@ -226,11 +228,11 @@ OSKEY:			CALL	READKEY			; Read the keyboard
 			DEC 	HL			; Decrement
 			JR	OSKEY 			; And loop
 ;
-$$:			LD	HL, KEYDOWN		; We have a key, so 
+.oskey_skip:		LD	HL, KEYDOWN		; We have a key, so
 			LD	(HL), 0			; clear the keydown flag
-			CP	1BH			; If we are not pressing ESC, 
+			CP	1BH			; If we are not pressing ESC,
 			SCF 				; then flag we've got a character
-			RET	NZ		
+			RET	NZ
 ;
 ; ESCSET
 ; Set the escape flag (bit 7 of FLAGS = 1) if escape is enabled (bit 6 of FLAGS = 0)
@@ -241,13 +243,13 @@ ESCSET: 		PUSH    HL
         		JR      NZ,ESCDIS		; escape is disabled, so skip
         		SET     7,(HL)			; Set bit 7, the escape flag
 ESCDIS: 		POP     HL
-        		RET	
+        		RET
 ;
 ; ESCTEST
 ; Test for ESC key
 ;
 ESCTEST:		CALL	READKEY			; Read the keyboard
-			RET	NZ			; Skip if no key is pressed				
+			RET	NZ			; Skip if no key is pressed
 			CP	1BH			; If ESC pressed then
 			JR	Z,ESCSET		; jump to the escape set routine
 			RET
@@ -260,7 +262,7 @@ ESCTEST:		CALL	READKEY			; Read the keyboard
 READKEY:		LD	A, (KEYDOWN)		; Get key down
 			DEC	A 			; Set Z flag if keydown is 1
 			LD	A, (KEYASCII)		; Get key ASCII value
-			RET 
+			RET
 ;
 ; TRAP
 ; This is called whenever BASIC needs to check for ESC
@@ -287,101 +289,101 @@ OSINIT:			CALL	VBLANK_INIT
 			LD 	HL, USER
 			LD	DE, RAM_Top
 			LD	E, A			; Page boundary
-			RET	
+			RET
 
 ;
-;OSCLI - Process a MOS command
+;OSCLI - Process an "operating system" command
 ;
-OSCLI: 			CALL    SKIPSP
-			CP      CR
-			RET     Z
-			CP      '|'
-			RET     Z
-			EX      DE,HL
-			LD      HL,COMDS
-OSCLI0:			LD      A,(DE)
-			CALL    UPPRC
-			CP      (HL)
-			JR      Z,OSCLI2
-			JR      C,OSCLI6
-OSCLI1:			BIT     7,(HL)
-			INC     HL
-			JR      Z,OSCLI1
-			INC     HL
-			INC     HL
-			JR      OSCLI0
-;
-OSCLI2:			PUSH    DE
-OSCLI3:			INC     DE
-			INC     HL
-			LD      A,(DE)
-			CALL    UPPRC
-			CP      '.'			; ABBREVIATED?
-			JR      Z,OSCLI4
-			XOR     (HL)
-			JR      Z,OSCLI3
-			CP      80H
-			JR      Z,OSCLI4
-			POP     DE
-			JR      OSCLI1
-;
-OSCLI4:			POP     AF
-		        INC     DE
-OSCLI5:			BIT     7,(HL)
-			INC     HL
-			JR      Z,OSCLI5
-			LD      A,(HL)
-			INC     HL
-			LD      H,(HL)
-			LD      L,A
-			PUSH    HL
-			EX      DE,HL
-			JP      SKIPSP
-;
-OSCLI6:			EX	DE, HL			; HL: Buffer for command
-			LD	DE, ACCS		; Buffer for command string is ACCS (the string accumulator)
-			PUSH	DE			; Store buffer address
-			CALL	CSTR_LINE		; Fetch the line
-			POP	HL			; HL: Pointer to command string in ACCS
-			PUSH	IY
-			MOSCALL	mos_oscli		; Returns OSCLI error in A
-			POP	IY
-			OR	A			; 0 means MOS returned OK
-			RET	Z			; So don't do anything
+OSCLI: 			; CALL    SKIPSP
+			; CP      CR
+			; RET     Z
+			; CP      '|'
+			; RET     Z
+			; EX      DE,HL
+			; LD      HL,COMDS
+OSCLI0:			; LD      A,(DE)
+			; CALL    UPPRC
+			; CP      (HL)
+			; JR      Z,OSCLI2
+			; JR      C,OSCLI6
+OSCLI1:			; BIT     7,(HL)
+			; INC     HL
+			; JR      Z,OSCLI1
+			; INC     HL
+			; INC     HL
+			; JR      OSCLI0
+;;
+OSCLI2:			; PUSH    DE
+OSCLI3:			; INC     DE
+			; INC     HL
+			; LD      A,(DE)
+			; CALL    UPPRC
+			; CP      '.'			; ABBREVIATED?
+			; JR      Z,OSCLI4
+			; XOR     (HL)
+			; JR      Z,OSCLI3
+			; CP      80H
+			; JR      Z,OSCLI4
+			; POP     DE
+			; JR      OSCLI1
+;;
+OSCLI4:			; POP     AF
+		        ; INC     DE
+OSCLI5:			; BIT     7,(HL)
+			; INC     HL
+			; JR      Z,OSCLI5
+			; LD      A,(HL)
+			; INC     HL
+			; LD      H,(HL)
+			; LD      L,A
+			; PUSH    HL
+			; EX      DE,HL
+			; JP      SKIPSP
+;;
+OSCLI6:			; EX	DE, HL			; HL: Buffer for command
+			; LD	DE, ACCS		; Buffer for command string is ACCS (the string accumulator)
+			; PUSH	DE			; Store buffer address
+			; CALL	CSTR_LINE		; Fetch the line
+			; POP	HL			; HL: Pointer to command string in ACCS
+			; PUSH	IY
+			; MOSCALL	mos_oscli		; Returns OSCLI error in A
+			; POP	IY
+			; OR	A			; 0 means MOS returned OK
+			; RET	Z			; So don't do anything
 			JP 	OSERROR			; Otherwise it's a MOS error
 
 HUH:    		LD      A,254			; Bad command error
         		CALL    EXTERR
         		DB    	"Bad command"
-        		DEFB    0			
+        		DEFB    0
 
-SKIPSP:			LD      A,(HL)			
+SKIPSP:			LD      A,(HL)
         		CP      ' '
         		RET     NZ
         		INC     HL
-        		JR      SKIPSP	
+        		JR      SKIPSP
 
 UPPRC:  		AND     7FH
 			CP      '`'
 			RET     C
 			AND     5FH			; CONVERT TO UPPER CASE
-			RET					
+			RET
 
 ; Each command has bit 7 of the last character set, and is followed by the address of the handler
 ; These must be in alphabetical order
-;		
-COMDS:  		DB	'AS','M'+80h		; ASM
-			DW	STAR_ASM
-			DB	'BY','E'+80h		; BYE
-			DW	STAR_BYE
-			DB	'EDI','T'+80h		; EDIT
-			DW	STAR_EDIT
-			DB	'F','X'+80h		; FX
-			DW	STAR_FX
-			DB	'VERSIO','N'+80h	; VERSION
-			DW	STAR_VERSION
-			DB	FFh
-						
+;
+; COMDS:  		DB	'AS','M'+80h		; ASM
+; 			DW	STAR_ASM
+; 			DB	'BY','E'+80h		; BYE
+; 			DW	STAR_BYE
+; 			DB	'EDI','T'+80h		; EDIT
+; 			DW	STAR_EDIT
+; 			DB	'F','X'+80h		; FX
+; 			DW	STAR_FX
+; 			DB	'VERSIO','N'+80h	; VERSION
+; 			DW	STAR_VERSION
+; 			DB	0FFh
+
 ; *ASM string
 ;
 STAR_ASM:		PUSH	IY			; Stack the BASIC pointer
@@ -396,18 +398,18 @@ STAR_ASM:		PUSH	IY			; Stack the BASIC pointer
 STAR_BYE:		CALL	VBLANK_STOP		; Restore MOS interrupts
 			LD	HL, 0			; The return value
 			JP	_end 			; Jump back to the end routine in init.asm
-	
+
 ; *VERSION
 ;
 STAR_VERSION:		CALL    TELL			; Output the welcome message
 			DB    	"BBC BASIC (Agon ADL) Version 1.03\n\r",0
 			RET
-	
+
 ; *EDIT linenum
 ;
 STAR_EDIT:		CALL	ASC_TO_NUMBER		; DE: Line number to edit
 			EX	DE, HL			; HL: Line number
-			CALL	FINDL			; HL: Address in RAM of tokenised line			
+			CALL	FINDL			; HL: Address in RAM of tokenised line
 			LD	A, 41			; F:NZ If the line is not found
 			JP	NZ, ERROR_		; Do error 41: No such line in that case
 ;
@@ -426,7 +428,7 @@ STAR_EDIT:		CALL	ASC_TO_NUMBER		; DE: Line number to edit
 			LD	(IX), 09h		; Set to echo to buffer
 			CALL	LISTIT
 			POP	AF
-			LD	(IX), A			; Restore the original LISTON variable			
+			LD	(IX), A			; Restore the original LISTON variable
 			LD	HL, ACCS		; HL: ACCS
 			LD	E, L			;  E: 0 - Don't clear the buffer; ACCS is on a page boundary so L is 0
 			CALL	OSLINE1			; Invoke the editor
@@ -438,33 +440,33 @@ STAR_FX:		CALL	ASC_TO_NUMBER
 			LD	C, E			; C: Save FX #
 			CALL	ASC_TO_NUMBER
 			LD	A, D  			; Is first parameter > 255?
-			OR 	A 			
-			JR	Z, STAR_FX1		; Yes, so skip next bit 
+			OR 	A
+			JR	Z, STAR_FX1		; Yes, so skip next bit
 			EX	DE, HL 			; Parameter is 16-bit
-			JR	STAR_FX2 
+			JR	STAR_FX2
 ;
 STAR_FX1:		LD	B, E 			; B: Save First parameter
 			CALL	ASC_TO_NUMBER		; Fetch second parameter
 			LD	L, B 			; L: First parameter
 			LD	H, E 			; H: Second parameter
 ;
-STAR_FX2:		LD	A, C 			; A: FX #, and fall through to OSBYTE	
+STAR_FX2:		LD	A, C 			; A: FX #, and fall through to OSBYTE
 ;
 ; OSBYTE
 ;  A: FX #
 ;  L: First parameter
 ;  H: Second parameter
 ;
-OSBYTE:			CP	0BH			; *FX 11, n: Keyboard auto-repeat delay
+OSBYTE:			CP	00BH			; *FX 11, n: Keyboard auto-repeat delay
 			JR	Z, OSBYTE_0B
-			CP	0CH			; *FX 12, n: Keyboard auto-repeat rate
+			CP	00CH			; *FX 12, n: Keyboard auto-repeat rate
 			JR	Z, OSBYTE_0C
-			CP	13H			; *FX 19: Wait for vblank
-			JR	Z, OSBYTE_13		
-			CP	76H			; *FX 118, n: Set keyboard LED
+			CP	013H			; *FX 19: Wait for vblank
+			JR	Z, OSBYTE_13
+			CP	076H			; *FX 118, n: Set keyboard LED
 			JP	Z, OSBYTE_76
-			CP	A0H
-			JP	Z, OSBYTE_A0		
+			CP	0A0H
+			JP	Z, OSBYTE_A0
 			JP	HUH			; Anything else trips an error
 
 ; OSBYTE 0x0B (FX 11,n): Keyboard auto-repeat delay
@@ -475,11 +477,11 @@ OSBYTE_0B:		VDU	23
 			VDU	0
 			VDU	vdp_keystate
 			VDU	L
-			VDU	H 
+			VDU	H
 			VDU	0
 			VDU 	0
 			VDU	255
-			RET 
+			RET
 
 ; OSBYTE 0x0C (FX 12,n): Keyboard auto-repeat rate
 ; Parameters:
@@ -491,9 +493,9 @@ OSBYTE_0C:		VDU	23
 			VDU	0
 			VDU 	0
 			VDU	L
-			VDU	H 
+			VDU	H
 			VDU	255
-			RET 
+			RET
 
 ; OSBYTE 0x13 (FX 19): Wait for vertical blank interrupt
 ;
@@ -501,12 +503,12 @@ OSBYTE_13:		CALL	WAIT_VBLANK
 			LD	L, 0			; Returns 0
 			JP	COUNT0
 ;
-WAIT_VBLANK:		PUSH 	IX			; Wait for VBLANK interrupt
-			MOSCALL	mos_sysvars		; Fetch pointer to system variables
-			LD	A, (IX + sysvar_time + 0)
-$$:			CP 	A, (IX + sysvar_time + 0)
-			JR	Z, $B
-			POP	IX
+WAIT_VBLANK:		; PUSH 	IX			; Wait for VBLANK interrupt
+			; MOSCALL	mos_sysvars		; Fetch pointer to system variables
+			; LD	A, (IX + sysvar_time + 0)
+WAIT_VBLANK_LOOP:	; CP 	A, (IX + sysvar_time + 0)
+			; JR	Z, WAIT_VBLANK_LOOP
+			; POP	IX
 			RET
 
 ; OSBYTE 0x76 (FX 118,n): Set Keyboard LED
@@ -519,21 +521,21 @@ OSBYTE_76:		VDU	23
 			VDU	0
 			VDU 	0
 			VDU	0
-			VDU	0 
+			VDU	0
 			VDU	L
-			RET 
-			
+			RET
+
 ; OSBYTE 0xA0: Fetch system variable
 ; Parameters:
 ; - L: The system variable to fetch
 ;
-OSBYTE_A0:		PUSH	IX
-			MOSCALL	mos_sysvars		; Fetch pointer to system variables
-			LD	BC, 0			
-			LD	C, L			; BCU = L
-			ADD	IX, BC			; Add to IX
-			LD	L, (IX + 0)		; Fetch the return value
-			POP	IX
+OSBYTE_A0:		; PUSH	IX
+			; MOSCALL	mos_sysvars		; Fetch pointer to system variables
+			; LD	BC, 0
+			; LD	C, L			; BCU = L
+			; ADD	IX, BC			; Add to IX
+			; LD	L, (IX + 0)		; Fetch the return value
+			; POP	IX
 			JP 	COUNT0
 
 ;OSLOAD - Load an area of memory from a file.
@@ -558,7 +560,7 @@ OSLOAD:			PUSH	BC			; Stack the size
 ; Load the file in as a text file
 ;
 OSLOAD_TXT:		XOR	A			; Set file attributes to read
-			CALL	OSOPEN			; Open the file			
+			CALL	OSOPEN			; Open the file
 			LD 	E, A 			; The filehandle
 			OR	A
 			LD	A, 4			; File not found error
@@ -569,12 +571,12 @@ OSLOAD_TXT1:		LD	HL, ACCS 		; Where the input is going to be stored
 ;
 ; First skip any whitespace (indents) at the beginning of the input
 ;
-$$:			CALL	OSBGET			; Read the byte into A
+OSLOAD_TXT_LOOP:	CALL	OSBGET			; Read the byte into A
 			JR	C, OSLOAD_TXT3		; Is it EOF?
 			CP	LF 			; Is it LF?
 			JR	Z, OSLOAD_TXT3 		; Yes, so skip to the next line
 			CP	21h			; Is it less than or equal to ASCII space?
-			JR	C, $B 			; Yes, so keep looping
+			JR	C, OSLOAD_TXT_LOOP	; Yes, so keep looping
 			LD	(HL), A 		; Store the first character
 			INC	L
 ;
@@ -583,11 +585,11 @@ $$:			CALL	OSBGET			; Read the byte into A
 OSLOAD_TXT2:		CALL	OSBGET			; Read the byte into A
 			JR	C, OSLOAD_TXT4		; Is it EOF?
 			CP	20h			; Skip if not an ASCII character
-			JR	C, $F
-			LD	(HL), A 		; Store in the input buffer			
+			JR	C, OSLOAD_TXT2_SKIP
+			LD	(HL), A 		; Store in the input buffer
 			INC	L			; Increment the buffer pointer
 			JP	Z, BAD			; If the buffer is full (wrapped to 0) then jump to Bad Program error
-$$:			CP	LF			; Check for LF
+OSLOAD_TXT2_SKIP:	CP	LF			; Check for LF
 			JR	NZ, OSLOAD_TXT2		; If not, then loop to read the rest of the characters in
 ;
 ; Finally, handle EOL/EOF
@@ -595,12 +597,12 @@ $$:			CP	LF			; Check for LF
 OSLOAD_TXT3:		LD	(HL), CR		; Store a CR for BBC BASIC
 			LD	A, L			; Check for minimum line length
 			CP	2			; If it is 2 characters or less (including CR)
-			JR	C, $F			; Then don't bother entering it
+			JR	C, OSLOAD_TXT3_SKIP	; Then don't bother entering it
 			PUSH	DE			; Preserve the filehandle
 			CALL	ONEDIT1			; Enter the line in memory
 			CALL	C,CLEAN			; If a new line has been entered, then call CLEAN to set TOP and write &FFFF end of program marker
 			POP	DE
-$$:			CALL	OSSTAT			; End of file?
+OSLOAD_TXT3_SKIP:	CALL	OSSTAT			; End of file?
 			JR	NZ, OSLOAD_TXT1		; No, so loop
 			CALL	OSSHUT			; Close the file
 			SCF				; Flag to BASIC that we're good
@@ -609,29 +611,30 @@ $$:			CALL	OSSTAT			; End of file?
 ; Special case for BASIC programs with no blank line at the end
 ;
 OSLOAD_TXT4:		CP	20h			; Skip if not an ASCII character
-			JR	C, $F
+			JR	C, OSLOAD_TXT4_SKIP
 			LD	(HL), A			; Store the character
 			INC	L
 			JP	Z, BAD
-$$:			JR	OSLOAD_TXT3
-			
+OSLOAD_TXT4_SKIP:	JR	OSLOAD_TXT3
+
 ;
 ; Load the file in as a tokenised binary blob
 ;
-OSLOAD_BBC:		MOSCALL	mos_load		; Call LOAD in MOS
-			RET	NC			; If load returns with carry reset - NO ROOM
-			OR	A			; If there is no error (A=0)
-			SCF				; Need to set carry indicating there was room
-			RET	Z			; Return
-;
-OSERROR:		PUSH	AF			; Handle the MOS error
-			LD	HL, ACCS		; Address of the buffer
-			LD	BC, 256			; Length of the buffer
-			LD	E, A			; The error code
-			MOSCALL	mos_getError		; Copy the error message into the buffer
-			POP	AF			
-			PUSH	HL			; Stack the address of the error (now in ACCS)		
-			ADD	A, 127			; Add 127 to the error code (MOS errors start at 128, and are trappable)
+OSLOAD_BBC:		;MOSCALL	mos_load		; Call LOAD in MOS
+			;RET	NC			; If load returns with carry reset - NO ROOM
+			;OR	A			; If there is no error (A=0)
+			;SCF				; Need to set carry indicating there was room
+			;RET	Z			; Return
+;;
+OSERROR:		;PUSH	AF			; Handle the MOS error
+			;LD	HL, ACCS		; Address of the buffer
+			;LD	BC, 256			; Length of the buffer
+			;LD	E, A			; The error code
+			;MOSCALL	mos_getError		; Copy the error message into the buffer
+			;POP	AF
+			;PUSH	HL			; Stack the address of the error (now in ACCS)
+			;ADD	A, 127			; Add 127 to the error code (MOS errors start at 128, and are trappable)
+			LD A, 127
 			JP	EXTERR			; Trigger an external error
 
 ;OSSAVE - Save an area of memory to a file.
@@ -665,9 +668,9 @@ OSSAVE_TXT:		LD 	A, (OSWRCHCH)		; Stack the current channel
 			LD	HL, (PAGE_)		; Get start of program area
 			EXX
 			LD	BC, 0			; Set the initial indent counters
-			EXX			
+			EXX
 OSSAVE_TXT1:		LD	A, (HL)			; Check for end of program marker
-			OR	A		
+			OR	A
 			JR	Z, OSSAVE_TXT2
 			INC	HL			; Skip the length byte
 			LD	DE, 0			; Clear DE to ensure we get a 16-bit line number
@@ -681,30 +684,32 @@ OSSAVE_TXT2:		LD	A, (OSWRCHFH)		; Get the file handle
 			LD	E, A
 			CALL	OSSHUT			; Close it
 			POP	AF			; Restore the channel
-			LD	(OSWRCHCH), A		
+			LD	(OSWRCHCH), A
 			RET
 ;
 ; Save the file out as a tokenised binary blob
 ;
-OSSAVE_BBC:		MOSCALL	mos_save		; Call SAVE in MOS
-			OR	A			; If there is no error (A=0)
-			RET	Z			; Just return
-			JR	OSERROR			; Trip an error
+OSSAVE_BBC:		; MOSCALL	mos_save		; Call SAVE in MOS
+			; OR	A			; If there is no error (A=0)
+			; RET	Z			; Just return
+			; JR	OSERROR			; Trip an error
+			XOR A
+			RET
 
 ; Check if an extension is specified in the filename
 ; Add a default if not specified
 ; HL: Filename (CSTR format)
 ;
-EXT_DEFAULT:		PUSH	HL			; Stack the filename pointer	
+EXT_DEFAULT:		PUSH	HL			; Stack the filename pointer
 			LD	C, '.'			; Search for dot (marks start of extension)
 			CALL	CSTR_FINDCH
 			OR	A			; Check for end of string marker
-			JR	NZ, $F			; No, so skip as we have an extension at this point			
+			JR	NZ, EXT_DEFAULT_SKIP	; No, so skip as we have an extension at this point
 			LD	DE, EXT_LOOKUP		; Get the first (default extension)
 			CALL	CSTR_CAT		; Concat it to string pointed to by HL
-$$:			POP	HL			; Restore the filename pointer
+EXT_DEFAULT_SKIP:	POP	HL			; Restore the filename pointer
 			RET
-			
+
 ; Check if an extension is valid and, if so, provide a pointer to a handler
 ; HL: Filename (CSTR format)
 ; Returns:
@@ -720,22 +725,22 @@ EXT_HANDLER_1:		PUSH	HL			; Stack the pointer to the extension
 			POP	HL			; Restore the pointer to the extension
 			JR	Z, EXT_HANDLER_2	; We have a match!
 ;
-$$:			LD	A, (DE)			; Skip to the end of the entry in the lookup
+EXT_HANDLER_LOOP:	LD	A, (DE)			; Skip to the end of the entry in the lookup
 			INC	DE
 			OR	A
-			JR	NZ, $B
+			JR	NZ, EXT_HANDLER_LOOP
 			INC	DE			; Skip the file extension # byte
 ;
 			LD	A, (DE)			; Are we at the end of the table?
 			OR	A
 			JR	NZ, EXT_HANDLER_1	; No, so loop
-;			
+;
 			LD      A,204			; Throw a "Bad name" error
         		CALL    EXTERR
         		DB    	"Bad name", 0
 ;
 EXT_HANDLER_2:		INC	DE			; Skip to the file extension # byte
-			LD	A, (DE)		
+			LD	A, (DE)
 			POP	HL			; Restore the filename pointer
 			RET
 ;
@@ -751,7 +756,7 @@ EXT_LOOKUP:		DB	'.BBC', 0, 0		; First entry is the default extension
 			DB	'.ASC', 0, 1
 			DB	'.BAS', 0, 1
 			DB	0			; End of table
-			
+
 ;OSCALL - Intercept page &FF calls and provide an alternative address
 ;
 ;&FFF7:	OSCLI	Execute *command.
@@ -771,28 +776,29 @@ EXT_LOOKUP:		DB	'.BBC', 0, 0		; First entry is the default extension
 OSCALL:			LD	HL, OSCALL_TABLE
 OSCALL_1:		LD	A, (HL)
 			INC	HL
-			CP	FFh
-			RET	Z 
+			CP	0FFh
+			RET	Z
 			CP	A, IYL
 			JR	Z, OSCALL_2
 			RET	NC
-			INC	HL 
-			INC	HL 
+			INC	HL
+			INC	HL
 			INC	HL
 			JR	OSCALL_1
 OSCALL_2:		LD	IY,(HL)
 			RET
-OSCALL_TABLE:		DB 	D4h
+OSCALL_TABLE:		DB 	0D4h
 			DW24 	OSBPUT
-			DB 	D7h
+			DB 	0D7h
 			DW24 	OSBGET
-			DB 	EEh
+			DB 	0EEh
 			DW24 	OSWRCH
-			DB	F4h
+			DB	0F4h
 			DW24 	OSBYTE
-			DB	F7h
-			DW24	OSCLI
-			DB	FFh	
+			DB	0F7h
+
+			d24	OSCLI
+			DB	0FFh
 
 ; OSOPEN
 ; HL: Pointer to path
@@ -803,12 +809,12 @@ OSCALL_TABLE:		DB 	D4h
 ; Returns:
 ;  A: Filehandle, 0 if cannot open
 ;
-OSOPEN:			LD	C, fa_read
-			JR	Z, $F
-			LD	C, fa_write | fa_open_append
-			JR	C, $F
-			LD	C, fa_write | fa_create_always
-$$:			MOSCALL	mos_fopen			
+OSOPEN:		; LD	C, fa_read
+			; JR	Z, $F
+			; LD	C, fa_write | fa_open_append
+			; JR	C, $F
+			; LD	C, fa_write | fa_create_always
+; $$:			MOSCALL	mos_fopen
 			RET
 
 ;OSSHUT - Close disk file(s).
@@ -816,12 +822,12 @@ $$:			MOSCALL	mos_fopen
 ;  If E=0 all files are closed (except SPOOL)
 ; Destroys: A,B,C,D,E,H,L,F
 ;
-OSSHUT:			PUSH	BC
-			LD	C, E
-			MOSCALL	mos_fclose
-			POP	BC
+OSSHUT:			; PUSH	BC
+			; LD	C, E
+			; MOSCALL	mos_fclose
+			; POP	BC
 			RET
-	
+
 ; OSBGET - Read a byte from a random disk file.
 ;  E = file channel
 ; Returns
@@ -829,22 +835,22 @@ OSSHUT:			PUSH	BC
 ;  Carry set if LAST BYTE of file
 ; Destroys: A,B,C,F
 ;
-OSBGET:			PUSH	BC
-			LD	C, E
-			MOSCALL	mos_fgetc
-			POP	BC
+OSBGET:			; PUSH	BC
+			; LD	C, E
+			; MOSCALL	mos_fgetc
+			; POP	BC
 			RET
-	
+
 ; OSBPUT - Write a byte to a random disk file.
 ;  E = file channel
 ;  A = byte to write
 ; Destroys: A,B,C,F
-;	
-OSBPUT:			PUSH	BC
-			LD	C, E
-			LD	B, A
-			MOSCALL	mos_fputc
-			POP	BC
+;
+OSBPUT:			; PUSH	BC
+			; LD	C, E
+			; LD	B, A
+			; MOSCALL	mos_fputc
+			; POP	BC
 			RET
 
 ; OSSTAT - Read file status
@@ -854,29 +860,29 @@ OSBPUT:			PUSH	BC
 ;  A: If Z then A = 0
 ; Destroys: A,D,E,H,L,F
 ;
-OSSTAT:			PUSH	BC
-			LD	C, E
-			MOSCALL	mos_feof
-			POP	BC
-			CP	1
+OSSTAT:			; PUSH	BC
+			; LD	C, E
+			; MOSCALL	mos_feof
+			; POP	BC
+			; CP	1
 			RET
-	
+
 ; GETPTR - Return file pointer.
 ;    E = file channel
 ; Returns:
 ; DEHL = pointer (0-&7FFFFF)
 ; Destroys: A,B,C,D,E,H,L,F
 ;
-GETPTR:			PUSH		IY
-			LD		C, E 
-			MOSCALL		mos_getfil 	; HLU: Pointer to FIL structure
-			PUSH		HL
-			POP		IY		; IYU: Pointer to FIL structure
-			LD		L, (IY + FIL.fptr + 0)
-			LD		H, (IY + FIL.fptr + 1)
-			LD		E, (IY + FIL.fptr + 2)
-			LD		D, (IY + FIL.fptr + 3)
-			POP		IY
+GETPTR:			; PUSH		IY
+			; LD		C, E
+			; MOSCALL		mos_getfil 	; HLU: Pointer to FIL structure
+			; PUSH		HL
+			; POP		IY		; IYU: Pointer to FIL structure
+			; LD		L, (IY + FIL.fptr + 0)
+			; LD		H, (IY + FIL.fptr + 1)
+			; LD		E, (IY + FIL.fptr + 2)
+			; LD		D, (IY + FIL.fptr + 3)
+			; POP		IY
 			RET
 
 ; PUTPTR - Update file pointer.
@@ -884,56 +890,56 @@ GETPTR:			PUSH		IY
 ; DEHL = new pointer (0-&7FFFFF)
 ; Destroys: A,B,C,D,E,H,L,F
 ;
-PUTPTR:			PUSH		IY 			
-			LD		C, A  		; C: Filehandle
-			PUSH		HL 		
-			LD		HL, 2
-			ADD		HL, SP
-			LD		(HL), E 	; 3rd byte of DWORD set to E
-			POP		HL
-			LD		E, D  		; 4th byte passed as E
-			MOSCALL		mos_flseek
-			POP		IY 
+PUTPTR:			; PUSH		IY
+			; LD		C, A  		; C: Filehandle
+			; PUSH		HL
+			; LD		HL, 2
+			; ADD		HL, SP
+			; LD		(HL), E 	; 3rd byte of DWORD set to E
+			; POP		HL
+			; LD		E, D  		; 4th byte passed as E
+			; MOSCALL		mos_flseek
+			; POP		IY
 			RET
-	
+
 ; GETEXT - Find file size.
 ;    E = file channel
 ; Returns:
 ; DEHL = file size (0-&800000)
 ; Destroys: A,B,C,D,E,H,L,F
 ;
-GETEXT:			PUSH		IY 
-			LD		C, E 
-			MOSCALL		mos_getfil 	; HLU: Pointer to FIL structure
-			PUSH		HL
-			POP		IY		; IYU: Pointer to FIL structure
-			LD		L, (IY + FIL.obj.objsize + 0)
-			LD		H, (IY + FIL.obj.objsize + 1)
-			LD		E, (IY + FIL.obj.objsize + 2)
-			LD		D, (IY + FIL.obj.objsize + 3)			
-			POP		IY 
-			RET	
+GETEXT:			; PUSH		IY
+			; LD		C, E
+			; MOSCALL		mos_getfil 	; HLU: Pointer to FIL structure
+			; PUSH		HL
+			; POP		IY		; IYU: Pointer to FIL structure
+			; LD		L, (IY + FIL.obj.objsize + 0)
+			; LD		H, (IY + FIL.obj.objsize + 1)
+			; LD		E, (IY + FIL.obj.objsize + 2)
+			; LD		D, (IY + FIL.obj.objsize + 3)
+			; POP		IY
+			RET
 
 ; GETIMS - Get time from RTC
 ;
-GETIMS:			PUSH	IY
-			LD	HL, ACCS 		; Where to store the time string
-			MOSCALL	mos_getrtc
-			LD	DE, ACCS		; DE: pointer to start of string accumulator
-			LD	E, A 			;  E: now points to the end of the string
-			POP	IY
-			RET 
-	
+GETIMS:			;PUSH	IY
+			;LD	HL, ACCS 		; Where to store the time string
+			;MOSCALL	mos_getrtc
+			;LD	DE, ACCS		; DE: pointer to start of string accumulator
+			;LD	E, A 			;  E: now points to the end of the string
+			;POP	IY
+			RET
+
 ; Get two word values from EXPR in DE, HL
 ; IY: Pointer to expression string
 ; Returns:
 ; DE: P1
 ; HL: P2
 ;
-EXPR_W2:		CALL	EXPRI			; Get first parameter	
+EXPR_W2:		CALL	EXPRI			; Get first parameter
 			EXX
 			PUSH	HL
-			CALL	COMMA 
+			CALL	COMMA
 			CALL	EXPRI			; Get second parameter
 			EXX
 			POP	DE

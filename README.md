@@ -1,12 +1,14 @@
-# agon-bbc-basic-adl
+# BBC BASIC port for ez80-for-rc kit
 
-A port of BBC Basic for Z80 to the Agon, converted to run in ADL mode
+A port of BBC Basic for eZ80 to run in ADL mode on the ez80-for-rc RC2014/RCBus kit
 
-### What is the Agon
+### Status
 
-Agon is a modern, fully open-source, 8-bit microcomputer and microcontroller in one small, low-cost board. As a computer, it is a standalone device that requires no host PC: it puts out its own video (VGA), audio (2 identical mono channels), accepts a PS/2 keyboard and has its own mass-storage in the form of a µSD card.
+Currently not yet operational - very much a work in progress...
 
-https://www.thebyteattic.com/p/agon.html
+### Derived
+
+This code based is derived from the port of BBCBasic for Z80 to the AGON
 
 ### What is BBC Basic for Z80?
 
@@ -20,20 +22,14 @@ ADL stands for Address Data Long. When the eZ80 is switched into this mode, the 
 
 ### Why am I doing this?
 
-I have already ported BBC BASIC for Z80 to the Agon (agon-bbc-basic), but it is essentially sandboxed in a 64K segment in the Agon address space. This version of BBC BASIC has been modified to run in ADL mode, and thus BASIC programs and data can take advantage of the whole of available user RAM, currently 429K.
+To enable the BBC Basic language for the CP/M extended memory model developed for the eZ80-for-rc kit.
 
 ### Assembling and Running
 
-This project is designed to be assembled and linked using the Zilog ZDS II toolkit - see the [readme](https://github.com/breakintoprogram/agon-mos/blob/main/README.md#build) in MOS for more details.
+TODO: Notes to come soon
 
-NB:
-- The project is configured to download this to RAM at &40000 via the ZDS cable
 
-### Documentation
-
-The AGON documentation can now be found on the [Agon Light Documentation Wiki](https://github.com/breakintoprogram/agon-docs/wiki)
-
-### License
+### License as per Agon Port by Dean Belfield
 
 This code is distributable under the terms of a zlib license. Read the file [COPYING](COPYING) for more information.
 
@@ -47,7 +43,6 @@ The original files are: [eval.z80](eval.z80), [exec.z80](exec.z80), [fpp.z80](fp
 
 Any additions or modifications I've made to port this to the Agon have been released under the same licensing terms as the original code, along with any tools, examples or utilities contained within this project. Code that has been copied or inspired by other sources is clearly marked, with the appropriate accreditations.
 
-Dean Belfield
+### Derivative work
 
-Twitter: [@breakintoprogram](https://twitter.com/BreakIntoProg)
-Blog: http://www.breakintoprogram.co.uk
+As per Dean Belfield, R.T. Russell and all other contributors

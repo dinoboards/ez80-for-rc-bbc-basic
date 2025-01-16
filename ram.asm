@@ -14,8 +14,8 @@
 
 			.ASSUME	ADL = 1
 
-			DEFINE	LORAM, SPACE = ROM
-			SEGMENT LORAM
+			section	.data, "aw", @progbits
+
 
 			XDEF	ACCS
 			XDEF	BUFFER
@@ -42,24 +42,24 @@
 			XDEF	ERR
 			XDEF	LISTON
 			XDEF	INCREM
-			
+
 			XDEF	FLAGS
 			XDEF	OSWRCHPT
 			XDEF	OSWRCHCH
 			XDEF	OSWRCHFH
-			XDEF	KEYDOWN 
+			XDEF	KEYDOWN
 			XDEF	KEYASCII
 			XDEF	KEYCOUNT
 
 			XDEF	R0
 			XDEF	R1
-			
+
 			XDEF	RAM_START
 			XDEF	RAM_END
 			XDEF	USER
 
-			ALIGN 		256		; ACCS, BUFFER & STAVAR must be on page boundaries			
-RAM_START:		
+			BALIGN 		256		; ACCS, BUFFER & STAVAR must be on page boundaries
+RAM_START:
 ;
 ACCS:			DS		256             ; String Accumulator
 BUFFER:			DS		256             ; String Input Buffer
@@ -112,11 +112,16 @@ KEYDOWN:		DS		1		; Keydown flag
 KEYASCII:		DS		1		; ASCII code of pressed key
 KEYCOUNT:		DS		1		; Counts every time a key is pressed
 R0:			DS		3		; General purpose storage for 8/16 to 24 bit operations
-R1:			DS		3		; 
+R1:			DS		3		;
 ;
 ; This must be at the end
 ;
-RAM_END:		
-			ALIGN	256			
+RAM_END:
+			BALIGN	256
 USER:							; Must be aligned on a page boundary
-	
+
+	XDEF	RAM_SIZE
+	XDEF	RAM_START_P1
+
+RAM_SIZE:	EQU	RAM_END - RAM_START - 1
+RAM_START_P1:	EQU	RAM_START + 1

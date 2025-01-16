@@ -17,9 +17,10 @@
 			.ASSUME	ADL = 1
 
 			INCLUDE	"equs.inc"
+			INCLUDE "macros.inc"
 
-			SEGMENT CODE
-				
+			section	.text, "ax", @progbits
+
 			XDEF	XEQ
 			XDEF	CHAIN0
 			XDEF	RUN
@@ -36,7 +37,7 @@
 			XDEF	MUL16
 			XDEF	CHANEL
 			XDEF	ASSEM
-				
+
 			XREF	AUTO
 			XREF	DELETE
 			XREF	LOAD
@@ -127,27 +128,27 @@
 ;
 ; List of token values used in this module
 ;
-TAND:			EQU     80H
-TOR:			EQU     84H
-TERROR:			EQU     85H
-LINE_:			EQU     86H
-OFF_:			EQU     87H
-STEP:			EQU     88H
-SPC:			EQU     89H
-TAB:			EQU     8AH
-ELSE_:			EQU     8BH
-THEN:			EQU     8CH
-LINO:			EQU     8DH
-TO:			EQU     B8H
-TCMD:			EQU     C6H
-TCALL:			EQU     D6H
-DATA_:			EQU     DCH
-DEF_:			EQU     DDH
-TGOSUB:			EQU     E4H
-TGOTO:			EQU     E5H
-TON:			EQU     EEH
-TPROC:			EQU     F2H
-TSTOP:			EQU     FAH
+TAND:			EQU     080H
+TOR:			EQU     084H
+TERROR:			EQU     085H
+LINE_:			EQU     086H
+OFF_:			EQU     087H
+STEP:			EQU     088H
+SPC:			EQU     089H
+TAB:			EQU     08AH
+ELSE_:			EQU     08BH
+THEN:			EQU     08CH
+LINO:			EQU     08DH
+TO:			EQU     0B8H
+TCMD:			EQU     0C6H
+TCALL:			EQU     0D6H
+DATA_:			EQU     0DCH
+DEF_:			EQU     0DDH
+TGOSUB:			EQU     0E4H
+TGOTO:			EQU     0E5H
+TON:			EQU     0EEH
+TPROC:			EQU     0F2H
+TSTOP:			EQU     0FAH
 
 ; The command table
 ; Commands are tokens from C6H onwards; this lookup table is used to
@@ -213,7 +214,7 @@ CMDTAB:			DW24  AUTO			; C6H
 			DW24  WIDTHV			; FEH
 			DW24  CLI             		; FFH: OSCLI
 
-; RUN 
+; RUN
 ; RUN "filename"
 ;
 RUN:			CALL    TERMQ			; Standalone RUN command?
@@ -229,8 +230,8 @@ CHAIN0:			LD      SP,(HIMEM)		; Reset SP
 ;
 RUN0:			LD      SP,(HIMEM)      	; Prepare for RUN
 			LD      IX,RANDOM		; Pointer to the RANDOM sysvar
-$$:			LD      A, R			; Use the R register to seed the random number generator
-			JR      Z, $B			; Loop unti we get a non-zero value in A
+RUN0_LOOP:		LD      A, R			; Use the R register to seed the random number generator
+			JR      Z, RUN0_LOOP		; Loop unti we get a non-zero value in A
 			RLCA				; Rotate it
 			RLCA
 			LD      (IX+3),A		; And store
@@ -244,7 +245,7 @@ $$:			LD      A, R			; Use the R register to seed the random number generator
 			CALL    SEARCH          	; Search for the first DATA token in the tokenised listing
 			LD      (DATPTR),HL     	; Set data pointer
 			LD      IY,(PAGE_)		; Load IY with the start of program memory
-;			
+;
 XEQ0:			CALL    NEWLIN
 XEQ:			LD      (ERRLIN),IY     	; Error pointer
 			CALL    TRAP           		; Check keyboard
@@ -256,12 +257,12 @@ XEQ1:			CALL    NXT
 			JR      Z,XEQ0          	; New program line
 			SUB     TCMD
 			JP      C,LET0          	; Implied "LET"
-			
+
 			LD	BC, 3
-			LD	B, A 
-			MLT	BC 
+			LD	B, A
+			MLT	BC
 			LD	HL,CMDTAB
-			ADD	HL, BC 
+			ADD	HL, BC
 			LD	HL, (HL)		; Table entry
 
 ;			ADD     A,A
@@ -369,7 +370,7 @@ ASM:			LD      (ERRLIN),IY
 			LD      HL,LISTON
 			LD      A,(HL)
 			AND     0FH
-			OR      B0H
+			OR      0B0H
 			LD      (HL),A
 			JR      XEQR
 ;
@@ -459,7 +460,7 @@ DIM1:			INC     IY			; Skip to the next token
 			EXX
 			INC     HL			; HL: Size of this dimension; increment (BBC BASIC DIMs are always one bigger)
 			POP     IX			; IX: The entity address
-			INC     IX				
+			INC     IX
 			LD      (IX),L          	; Save the size of this dimension in the entity
 			INC     IX
 			LD      (IX),H
@@ -483,7 +484,7 @@ DIM1:			INC     IY			; Skip to the next token
 			JR      C,NOROOM		; Throw a "No Room" error if there is an overflow
 ;
 ; We now allocate the memory for the array
-;			
+;
 DIM3:			ADD     HL,DE
 			JR      C,NOROOM
 			PUSH    HL
@@ -510,14 +511,14 @@ DIM5:			CALL    NXT
 ; DIM errors
 ;
 BADDIM:			LD      A,10            	; Throw a "Bad DIM" error
-			JR	ERROR1			
+			JR	ERROR1
 NOROOM:			LD      A,11            	; Throw a "DIM space" error
 ERROR1:			JP      ERROR_
 ;
 ; At this point we're reserving a block of memory, i.e.
 ; DIM var expr[,var expr...]
 ;
-DIM4:			OR      A			;  A: The dimension variable type 
+DIM4:			OR      A			;  A: The dimension variable type
 			JR      Z,BADDIM		; Throw "Bad Dim" if variable is an 8-bit indirection
 			JP      M,BADDIM        	; or a string
 			LD      B,A			; Temporarily store the dimension variable type in B
@@ -789,7 +790,7 @@ UNTIL:			POP     BC			; Fetch the marker
 			LD      A,43
 			JR      NZ,ERROR2		; Throw a "No REPEAT" if this value does not match
 			CALL    EXPRI			; Fetch the expression
-			CALL    TEST			; Test if the expression evaluates to zero		
+			CALL    TEST			; Test if the expression evaluates to zero
 			POP     BC			; Pop the marker
 			POP     DE			; Pop the address of the REPEAT instruction
 			JR      NZ,XEQ2         	; If it is TRUE, then continue execution after the UNTIL instruction (we're done looping)
@@ -830,7 +831,7 @@ FOR:			CALL    ASSIGN			; Assign the START expression value to a variable
 			LD      C,H
 			EXX
 			PUSH    HL
-;			
+;
 			LD      HL,1            	; The preset STEP value is 1
 			EXX
 			LD      A,(IY)			; Fetch the next token
@@ -841,13 +842,13 @@ FOR:			CALL    ASSIGN			; Assign the START expression value to a variable
 			PUSH    IX
 			CALL    EXPRN          		; Fetch the STEP expression value
 			POP     IX
-;			
+;
 FOR1:			PUSH    BC			; Stack the STEP value
 			PUSH    HL
 			EXX
 			PUSH    HL
 			EXX
-;			
+;
 			PUSH    IY              	; Stack the current execution address
 			PUSH    IX              	; Stack the loop variable
 			CALL    CHECK
@@ -922,7 +923,7 @@ LOOP_:			POP     BC
 			PUSH    BC
 			JP      XEQ
 ;
-NEXT1:			LD      HL,27			; TODO: What does this do?	
+NEXT1:			LD      HL,27			; TODO: What does this do?
 			ADD     HL,SP
 			LD      SP,HL			; Adjust the stack
 			POP     BC
@@ -932,7 +933,7 @@ NEXT1:			LD      HL,27			; TODO: What does this do?
 			PUSH    HL
 			PUSH    BC
 			JR      Z,NEXT0
-;			
+;
 			LD      A,33
 ERROR3:			JP      ERROR_           	; Throw the error "Can't match FOR"
 
@@ -964,7 +965,7 @@ PROC1:			CALL    CHECK			; Check there is space for this
 ;
 ; At this point the PROC/FN has not yet been registered in the dynamic area
 ; So we need to search through the listing and find where the DEFPROC/FN is and save the address
-;			
+;
 			PUSH    BC			; BC: Still pointing to the PROC token in the tokenised line
 			LD      HL,(PAGE_)		; HL: Start of program memory
 ;
@@ -998,7 +999,7 @@ PROC3:			POP     IY              	; Restore the execution address
 			JR      NZ,ERROR3      		; Throw error "No such FN/PROC" if not found
 ;
 ; At this point we have a PROC/FN entry in the dynamic area
-; 			
+;
 PROC4:			LD	DE,(HL)			; HL: Address of pointer; fetch entity address in DE
 			LD	HL,3
 			ADD     HL,SP
@@ -1044,7 +1045,7 @@ LOCAL_:			POP     BC			; BC: The current check marker (on the stack)
 			LD      HL,FNCHK		; Check if we are in a FN
 			OR      A
 			SBC     HL,BC
-			JR      Z,LOCAL1		; Yes, so all good, we can use local			
+			JR      Z,LOCAL1		; Yes, so all good, we can use local
 			LD      HL,PROCHK		; Now check if we are in a PROC
 			OR      A
 			SBC     HL,BC
@@ -1065,7 +1066,7 @@ LOCAL1:			PUSH    IY			; IY: BASIC pointer
 			EXX
 			PUSH    BC
 			POP     IY
-;			
+;
 LOCAL2:			CALL    GETVAR			; Get the variable location
 			JP      NZ,SYNTAX
 			OR      A               	; Check the variable type (80h = string)
@@ -1114,7 +1115,7 @@ UNSTK:			POP     IX			; Unstack a single local variable
 ;
 UNSTK1:			LD      HL,0			; Unstack a string
 			ADD     HL,SP
-			LD      E,C			
+			LD      E,C
 			CALL    STORES			; TODO: Not sure why or where it is being stored at this point
 			LD      SP,HL
 			JR      ENDPRO
@@ -1428,7 +1429,7 @@ HIMEMV:			CALL    EQUALS			; Check for '=' and throw an error if not found
 			LD	(R0+2),A
 			LD	HL,(FREE)
 			LD      DE,256
-			ADD	HL,DE 
+			ADD	HL,DE
 			EX	DE,HL			; DE: FREE + 256
 			LD	HL,(R0)			; HL: The passed expression
 			XOR     A
@@ -1477,18 +1478,18 @@ VDU1:			PUSH	IX
 			POP	IX
 			EXX
 			LD	(IX+0),L		; Write out the character to the buffer
-			INC	IX 
+			INC	IX
 			LD      A,(IY)			;  A: The separator character
 			CP      ','			; Is it a comma?
 			JR      Z,VDU2			; Yes, so it's a byte value - skip to next expression
 			CP      ';'			; Is it a semicolon?
 			JR      NZ,VDU3			; No, so skip to the next expression
 			LD	(IX+0),H		; Write out the high byte to the buffer
-			INC	IX 
+			INC	IX
 VDU2:			INC     IY			; Skip to the next character
 VDU3:			CALL    TERMQ			; Skip past white space
 			JR      NZ,VDU1			; Loop unti reached end of the VDU command
-			LD	A,IXL			;  A: Number of bytes to write out 
+			LD	A,IXL			;  A: Number of bytes to write out
 			OR	A
 			JR 	Z,VDU4			; No bytes to write, so skip the next bit
 			LD	HL,BUFFER		; HL: Start of stream
@@ -1530,7 +1531,7 @@ CALL_:			CALL    EXPRI           	; Fetch the address
 			LD	A,L			;  A: MSB of address
 			EXX
 			LD	(R0+0),HL		; HL: LSW of address
-			LD	(R0+2),A		
+			LD	(R0+2),A
 			LD      B,0             	;  B: The parameter counter
 			LD      DE,BUFFER       	; DE: Vector
 ;
@@ -1568,7 +1569,7 @@ USR:			CALL    ITEMI			; Evaluate the expression
 			LD	A,L			;  A: MSB of address
 			EXX
 			LD	(R0+0),HL		; HL: LSW of address
-			LD	(R0+2),A		
+			LD	(R0+2),A
 			LD	HL,(R0)			; Get the 24-bit address in HL
 ;
 USR1:			PUSH    HL              	; Address on stack
@@ -1583,28 +1584,28 @@ USR1:			PUSH    HL              	; Address on stack
 			LD      C, (IX+24)		; F%
 			PUSH    BC
 ;
-			LD	A, (IX+8)		; B% -> MSW 
-			LD	(R0+1), A 		
+			LD	A, (IX+8)		; B% -> MSW
+			LD	(R0+1), A
 			LD	A, (IX+9)
-			LD	(R0+2), A 
-			LD	A, (IX+12)		; C% -> LSB 
-			LD	(R0+0), A 
+			LD	(R0+2), A
+			LD	A, (IX+12)		; C% -> LSB
+			LD	(R0+0), A
 			LD	BC, (R0)
 ;
-			LD	A, (IX+16)		; D% -> MSW 
-			LD	(R0+1), A 		
+			LD	A, (IX+16)		; D% -> MSW
+			LD	(R0+1), A
 			LD	A, (IX+17)
-			LD	(R0+2), A 
-			LD	A, (IX+20)		; E% -> LSB 
-			LD	(R0+0), A 
+			LD	(R0+2), A
+			LD	A, (IX+20)		; E% -> LSB
+			LD	(R0+0), A
 			LD	DE, (R0)
 ;
-			LD	A, (IX+32)		; H% -> MSW 
-			LD	(R0+1), A 		
+			LD	A, (IX+32)		; H% -> MSW
+			LD	(R0+1), A
 			LD	A, (IX+33)
-			LD	(R0+2), A 
-			LD	A, (IX+48)		; L% -> LSB 
-			LD	(R0+0), A 
+			LD	(R0+2), A
+			LD	A, (IX+48)		; L% -> LSB
+			LD	(R0+0), A
 			LD	HL, (R0)
 ;
 			POP     AF			; F%
@@ -1613,7 +1614,7 @@ USR1:			PUSH    HL              	; Address on stack
 			LD      IX,BUFFER
 			JP      (IY)            	; Off to user routine
 ;
-USR2:			POP     IY	
+USR2:			POP     IY
 			XOR     A
 			LD      C,A
 			RET
@@ -1721,7 +1722,7 @@ STORES:			RRA				; Rotate right to shift bit 0 into carry
 			LD      H,L			; H: Set the maximum string length to the string length
 			EXX
 			PUSH    HL
-			LD	BC, 0			
+			LD	BC, 0
 			LD      C,A			; BC: The maximum (original) string length
 			ADD     HL,BC			; Work out whether this is the last string in memory
 			LD      BC,(FREE)
@@ -1729,8 +1730,9 @@ STORES:			RRA				; Rotate right to shift bit 0 into carry
 			POP     HL
 			SCF
 			JR      Z,STORS1
-			LD	HL, BC			; HL=BC
-; 
+			PUSH	BC			; HL=BC
+			POP	HL
+;
 ; At this point carry flag will be clear if the string can be replaced in memory, otherwise will be set
 ; - H': The maximum (original) string length
 ; - L': The actual string length (must be less than H')
@@ -1741,7 +1743,7 @@ STORS1:			EXX				; This block was a call to STORE4
 			LD      (IX+1),H		; The maximum (original) string length
 			EXX
 			LD	(IX+2),HL		; The pointer to the original string
-;			
+;
 			LD	BC, 0
 			LD      C,E			; BC: The new string length
 			EX      DE,HL
@@ -1783,7 +1785,7 @@ STORS5:			LD      A,CR			; Finally add the terminator
 ;  CALLING STATEMENT TO THE DUMMY VARIABLES VIA
 ;  THE STACK.  IT MUST BE DONE THIS WAY TO MAKE
 ;  PROCFRED(A,B)    DEF PROCFRED(B,A)     WORK.
-;    Inputs: DE addresses parameter list 
+;    Inputs: DE addresses parameter list
 ;            IY addresses dummy variable list
 ;   Outputs: DE,IY updated
 ;  Destroys: Everything
@@ -1830,7 +1832,7 @@ ARGUE2:			CALL    EXPRS			; At this point it is a string variable, so get the st
 ARGUE4:			CALL    NXT			; Skip whitespace
 			CP      ','			; Check to see if the next value is a comma
 			JR      NZ,ARGUE5		; No, so jump here
-			LD      A,(DE)	
+			LD      A,(DE)
 			CP      ','			; Are there any more arguments?
 			JR      Z,ARGUE1        	; Yes, so loop
 ;
@@ -1949,7 +1951,7 @@ DELIM:			LD      A,(IY)          	; Assembler delimiter
 			RET     Z
 TERM:			CP      ';'             	; Assembler terminator
 			RET     Z
-			CP      '\'
+			CP      92	; CP '\\'
 			RET     Z
 			JR      TERM0
 ;
@@ -1979,7 +1981,7 @@ FORMAT:			CP      TAB
 			JR      Z,DOTAB
 			CP      SPC
 			JR      Z,DOSPC
-			CP      '''
+			CP      39			; CP '\''
 			RET     NZ
 			CALL    CRLF
 			XOR     A
@@ -2079,7 +2081,7 @@ XTRAC1:			LD      A,(IY)
 ; Search for a token at the start of a program line
 ; - HL: Pointer to the start of a tokenised line in the program area
 ; Returns:
-; - HL: Pointer to the 
+; - HL: Pointer to the
 ; -  F: Carry set if not found
 ; Corrupts:
 ; - BC
@@ -2100,7 +2102,7 @@ SRCH1:			LD      C,(HL)			;  C: Fetch the line length
 			DEC     C
 			ADD     HL,BC
 			JR      SRCH1			; Rinse, lather and repeat
-; 			
+;
 SRCH2:			DEC     HL              	; Token not found, so back up to the CR at the end of the last line
 			SCF				; And set the carry flag
 			RET
@@ -2118,7 +2120,8 @@ SRCH2:			DEC     HL              	; Token not found, so back up to the CR at the
 ; Corrupts:
 ; - HL
 X4OR5:			CP      4			; Check A = 4 (Z flag is used later)
-			LD	HL,DE
+			PUSH    DE
+			POP	HL
 			ADD     HL,HL			; Multiply by 2 (note this operation preserves the zero flag)
 			RET     C			; Exit if overflow
 			ADD     HL,HL			; Multiply by 2 again
@@ -2138,7 +2141,7 @@ X4OR5:			CP      4			; Check A = 4 (Z flag is used later)
 ;
 MUL16:			PUSH	BC
 			LD	D, C			; Set up the registers for the multiplies
-			LD	E, L		
+			LD	E, L
 			LD	L, C
 			LD	C, E
 			MLT	HL			; HL = H * C (*256)
@@ -2147,7 +2150,7 @@ MUL16:			PUSH	BC
 			ADD	HL, BC			; HL = The sum of the two most significant multiplications
 			POP	BC
 			XOR	A
-			SBC	H			; If H is not zero then it's an overflow
+			SBC	A, H			; If H is not zero then it's an overflow
 			RET	C
 			LD	H, L			; HL = ((H * C) + (B * L) * 256) + (L * C)
 			LD	L, A
@@ -2156,7 +2159,7 @@ MUL16:			PUSH	BC
 ;
 CHANEL:			CALL    NXT			; Skip whitespace
 			CP      '#'			; Check for the '#' symbol
-			LD      A,45	
+			LD      A,45
 			JP      NZ,ERROR_        	; If it is missing, then throw a "Missing #" error
 CHNL:			INC     IY             		; Bump past the '#'
 			CALL    ITEMI			; Get the channel number
@@ -2220,7 +2223,7 @@ ASSEM5:			POP     HL              	; Old PC
 			LD	(R0),HL			; Store HL in R0 so we can access the MSB
 			LD	A,(R0+2)		; Print out the address
 			CALL	HEX
-			LD      A,H			
+			LD      A,H
 			CALL    HEX
 			LD      A,L
 			CALL    HEXSP
@@ -2267,7 +2270,7 @@ HEXOUT:			AND     0FH
 			ADC     A,40H
 			DAA
 OUTCH1:			JP      OUT_
-	
+
 ; Processor Specific Translation Section:
 ;
 ; Register Usage: B: Type of most recent operand (the base value selected from the opcode table)
@@ -2297,7 +2300,7 @@ ASMB:			CP      '.'			; Check for a dot; this indicates a label
 			POP     AF
 			CALL    STORE			; Store the program counter
 			POP     IX			; Restore the code destination pointer
-;			
+;
 ASMB1:			LD	A,(LISTON)		; Get the OPT flags
 			AND	80H
 			LD      D,A     		;  D: Clear the flags and set the initial ADL mode (copied from bit 7 of LISTON)
@@ -2327,7 +2330,7 @@ ASMB1:			LD	A,(LISTON)		; Get the OPT flags
 ;
 GROUP02:		SUB     10			; The number of opcodes in GROUP2 and GROUP3
 			JR      NC,GROUP04		; If not in that range, then check GROUP4
-			CP      3-10			; 
+			CP      3-10			;
 			CALL    C,BIT_
 			RET     C
 			CALL    REGLO
@@ -2339,9 +2342,9 @@ GROUP02:		SUB     10			; The number of opcodes in GROUP2 and GROUP3
 ;
 GROUP04:		SUB     3			; The number of opcodes in GROUP4
 			JR      NC,GROUP05		; If not in that range, then check GROUP5
-GROUP04_1:		CALL    PAIR				
+GROUP04_1:		CALL    PAIR
 			RET     C
-			JR      BYTE0				
+			JR      BYTE0
 ;
 ; GROUP 5 - SUB, AND, XOR, OR, CP
 ; GROUP 6 - ADD, ADC, SBC
@@ -2351,10 +2354,10 @@ GROUP05:		SUB     8+2			; The number of opcodes in GROUP5 and GROUP6
 			CP      5-8
 			LD      B,7
 			CALL    NC,OPND			; Get the first operand
-			LD      A,B			
+			LD      A,B
 			CP      7			; Is the operand 'A'?
 			JR      NZ,GROUP05_HL		; No, so check for HL, IX or IY
-;			
+;
 GROUP05_1:		CALL    REGLO			; Handle ADD A,?
 			LD      A,C
 			JR      NC,BIND1		; If it is a register, then write that out
@@ -2436,9 +2439,9 @@ GROUP09:		SUB     2			; The number of opcodes in GROUP09 amd GROUP10
 			CALL    C,CORN			; Call CORN if Group 9 (IN)
 			INC     H			; If it is IN r,(C) or OUT (C),r then
 			JR      Z,BYTE0			; Just write the operand out
-;			
+;
 			LD      A,B			; Check the register
-			CP      7	
+			CP      7
 			SCF
 			RET     NZ			; If it is not A, then return
 ;
@@ -2457,9 +2460,9 @@ GROUP11:		SUB     2			; The number of opcodes in GROUP11
 			CP      1-2
 			CALL    NZ,COND_
 			LD      A,C
-			JR      NC,$F
+			JR      NC,GROUP11_SKIP
 			LD      A,18H
-$$:			CALL    BYTE_
+GROUP11_SKIP:		CALL    BYTE_
 			CALL    NUMBER
 			LD      DE,(PC)
 			INC     DE
@@ -2505,7 +2508,7 @@ GROUP13_1:		CALL	EZ80SF_FULL		; Evaluate the suffix
 GROUP14:		SUB	1			; The number of opcodes in GROUP14
 			JR	NC,GROUP15
 			CALL	EZ80SF_FULL		; Evaluate the suffix
-			RET	C			; Exit if an invalid suffix provided		
+			RET	C			; Exit if an invalid suffix provided
 			CALL    NUMBER
 			AND     C
 			OR      H
@@ -2529,7 +2532,7 @@ GROUP15_1:		CALL    COND_
 GROUP16:		SUB	1			; The number of opcodes in GROUP16
 			JR	NC,GROUP17
 			CALL	EZ80SF_FULL		; Evaluate the suffix
-			CALL    LDOP			; Check for accumulator loads	
+			CALL    LDOP			; Check for accumulator loads
 			JP      NC,LDA			; Yes, so jump here
 			CALL    REGHI
 			EX      AF,AF'
@@ -2570,7 +2573,7 @@ LDIN:			EX      AF,AF'
 			RET     C
 			CALL    BYTE_
 			BIT	7,D			; Check the ADL flag
-			JP	NZ,VAL24 		; If it is set, then use 24-bit addresses			
+			JP	NZ,VAL24 		; If it is set, then use 24-bit addresses
 			JP      VAL16			; Otherwise use 16-bit addresses
 ;
 ; Group 17 - TST
@@ -2622,12 +2625,12 @@ ADL_:			CALL	NUMBER			; Fetch the ADL value
 			AND	7Fh			; Clear bit 7
 			OR	C			; OR in the ADL value
 			LD	(LISTON),A		; Store
-			RET			
+			RET
 ;
 ; DEFB, DEFW, DEFL, DEFM
 ;
 DEFS:			OR	A			; Handle DEFB
-			JP	Z, DB_	
+			JP	Z, DB_
 			DEC	A			; Handle DEFW
 			JP	Z, ADDR16
 			DEC	A			; Handle DEFL
@@ -2637,37 +2640,37 @@ DEFS:			OR	A			; Handle DEFB
 			CALL    EXPRS
 			POP     IX
 			LD      HL,ACCS
-$$:			XOR     A
+DEFS_LOOP:		XOR     A
 			CP      E
 			RET     Z
 			LD      A,(HL)
 			INC     HL
 			CALL    BYTE_
 			DEC     E
-			JR      $B
-			
+			JR      DEFS_LOOP
+
 ;
 ;SUBROUTINES:
 ;
 EZ80SF_PART:		LD	A,(IY)			; Check for a dot
 			CP	'.'
-			JR	Z, $F			; If present, then carry on processing the eZ80 suffix
+			JR	Z, EZ80SF_PART_SKIP	; If present, then carry on processing the eZ80 suffix
 			OR	A			; Reset the carry flag (no error)
 			RET				; And return
-$$:			INC	IY			; Skip the dot
+EZ80SF_PART_SKIP:	INC	IY			; Skip the dot
 			PUSH	BC			; Push the operand
 			LD	HL,EZ80SFS_2		; Check the shorter fully qualified table (just LIL and SIS)
 			CALL	FIND			; Look up the operand
 			JR	NC,EZ80SF_OK
 			POP	BC			; Not found at this point, so will return with a C (error)
 			RET
-;			
+;
 EZ80SF_FULL:		LD	A,(IY)			; Check for a dot
 			CP	'.'
-			JR	Z,$F			; If present, then carry on processing the eZ80 suffix
+			JR	Z,EZ80SF_FULL_SKIP	; If present, then carry on processing the eZ80 suffix
 			OR	A			; Reset the carry flag (no error)
 			RET				; And return
-$$:			INC	IY 			; Skip the dot
+EZ80SF_FULL_SKIP:	INC	IY 			; Skip the dot
 			PUSH	BC			; Push the operand
 			LD	HL,EZ80SFS_1		; First check the fully qualified table
 			CALL	FIND 			; Look up the operand
@@ -2693,7 +2696,7 @@ EZ80SF_TABLE:		LD	HL,EZ80SFS_ADL0		; Return with the ADL0 lookup table
 			BIT 	7,D			; if bit 7 of D is 0
 			RET	Z
 			LD	HL,EZ80SFS_ADL1		; Otherwise return with the ADL1 lookup table
-			RET 
+			RET
 ;
 ADDR_:			BIT	7,D			; Check the ADL flag
 			JR	NZ,ADDR24 		; If it is set, then use 24-bit addresses
@@ -2738,7 +2741,7 @@ LD8:			CP      7
 ;
 CORN:			PUSH    BC
 			CALL    OPND			; Get the operand
-			BIT     5,B			
+			BIT     5,B
 			POP     BC
 			JR      Z,NUMBER		; If bit 5 is clear, then it's IN A,(N) or OUT (N),A, so fetch the port number
 			LD      H,-1			; At this point it's IN r,(C) or OUT (C),r, so flag by setting H to &FF
@@ -2752,7 +2755,7 @@ BIND:			CP      76H
 			RET     Z               	; Reject LD (HL),(HL)
 			CALL    BYTE_
 			BIT	6,D			; Check the index bit in flags
-			RET     Z	
+			RET     Z
 			LD      A,E			; If there is an index, output the offset
 			JR      BYTE_
 ;
@@ -2776,10 +2779,10 @@ OPND:			PUSH    HL			; Preserve HL
 			CALL    Z,OFFSET		; If bit 3 of B is zero, then get the offset
 			LD      E,L			; E: The offset
 			POP     HL
-			LD	A,DDH			; IX prefix
+			LD	A,0DDH			; IX prefix
 			BIT     6,B			; If bit 6 is reset then
 			JR      Z,BYTE_			; It's an IX instruction, otherwise set
-			LD	A,FDH			; IY prefix
+			LD	A,0FDH			; IY prefix
 ;
 BYTE_:			LD      (IX),A			; Write a byte out
 			INC     IX
@@ -2873,7 +2876,7 @@ EXIT_:			LD      B,0			; Set B to 0
 			CCF
 			RET     C
 FIND0:			LD      A,(HL)			; Check for the end of the table (0 byte marker)
-			OR      A		
+			OR      A
 			JR      Z,EXIT_			; Exit
 			XOR     (IY)
 			AND     01011111B
@@ -2890,7 +2893,7 @@ FIND3:			BIT     7,(HL)			; Is this the end of token marker?
 			INC     IY
 			INC     HL
 			JR      NZ,FIND5		; Yes
-			CP      (HL)			
+			CP      (HL)
 			CALL    Z,SKIP0
 			LD      A,(HL)
 			XOR     (IY)
@@ -2923,91 +2926,91 @@ SIGN:			CP      '+'			; Check whether the character is a sign symbol
 			RET
 ;
 DOT:			CP	'.'			; Check if it is a dot character
-			RET 
+			RET
 
 ; Z80 opcode list
 ;
 ; Group 0: (15 opcodes)
 ; Trivial cases requiring no computation
 ;
-OPCODS:			DB	'NO','P'+80H,00h	; # 00h
-			DB	'RLC','A'+80H,07h
-			DB	'EX',0,'AF',0,'AF','''+80H,08h
-			DB	'RRC','A'+80H,0FH
-			DB	'RL','A'+80H,17H
-			DB	'RR','A'+80H,1FH
-			DB	'DA','A'+80H,27H
-			DB	'CP','L'+80H,2FH
-			DB	'SC','F'+80H,37H
-			DB	'CC','F'+80H,3FH
-			DB	'HAL','T'+80H,76H
-			DB	'EX','X'+80H,D9H
-			DB	'EX',0,'DE',0,'H','L'+80H,EBH
-			DB	'D','I'+80H,F3H
-			DB	'E','I'+80H,FBH
+OPCODS:			DB	'NO','P'+80H,000h	; # 00h
+			DB	'RLC','A'+80H,007h
+			DB	'EX',0,'AF',0,'AF',SINGLE_QUOTE+80H,008h
+			DB	'RRC','A'+80H,00FH
+			DB	'RL','A'+80H,017H
+			DB	'RR','A'+80H,01FH
+			DB	'DA','A'+80H,027H
+			DB	'CP','L'+80H,02FH
+			DB	'SC','F'+80H,037H
+			DB	'CC','F'+80H,03FH
+			DB	'HAL','T'+80H,076H
+			DB	'EX','X'+80H,0D9H
+			DB	'EX',0,'DE',0,'H','L'+80H,0EBH
+			DB	'D','I'+80H,0F3H
+			DB	'E','I'+80H,0FBH
 ;
 ; Group 1: (53 opcodes)
 ; As Group 0, but with an ED prefix
 ;
-			DB	'NE','G'+80H,44H	; 0Fh
-			DB	'IM',0,'0'+80H,46H
-			DB	'RET','N'+80H,45H
-			DB	'MLT',0,'B','C'+80H,4CH
-			DB	'RET','I'+80H,4DH
-			DB	'IM',0,'1'+80H,56H
-			DB	'MLT',0,'D','E'+80H,5CH						
-			DB	'IM',0,'2'+80H,5EH
-			DB	'RR','D'+80H,67H
-			DB	'MLT',0,'H','L'+80H,6CH
-			DB	'LD',0,'MB',0,'A'+80H,6DH
-			DB	'LD',0,'A',0,'M','B'+80H,6EH
-			DB	'RL','D'+80H,6FH
-			DB	'SL','P'+80H,76H
-			DB	'MLT',0,'S','P'+80H,7CH
-			DB	'STMI','X'+80H,7DH
-			DB	'RSMI','X'+80H,7EH
-			DB	'INI','M'+80H,82H
-			DB	'OTI','M'+80H,83H
-			DB	'INI','2'+80H,84H
-			DB	'IND','M'+80H,8AH
-			DB	'OTD','M'+80H,8BH
-			DB	'IND','2'+80H,8CH
-			DB	'INIM','R'+80H,92H
-			DB	'OTIM','R'+80H,93H
-			DB	'INI2','R'+80H,94H
-			DB	'INDM','R'+80H,9AH
-			DB	'OTDM','R'+80H,9BH
-			DB	'IND2','R'+80H,9CH
-			DB	'LD','I'+80H,A0H
-			DB	'CP','I'+80H,A1H
-			DB	'IN','I'+80H,A2H
-			DB	'OUTI','2'+80H,A4H	; These are swapped round so that FIND will find
-			DB	'OUT','I'+80H,A3H	; OUTI2 before OUTI
-			DB	'LD','D'+80H,A8H
-			DB	'CP','D'+80H,A9H
-			DB	'IN','D'+80H,AAH
-			DB	'OUTD','2'+80H,ACH	; Similarly these are swapped round so that FIND
-			DB	'OUT','D'+80H,ABH	; will find OUTD2 before OUTD
-			DB	'LDI','R'+80H,B0H
-			DB	'CPI','R'+80H,B1H
-			DB	'INI','R'+80H,B2H
-			DB	'OTI','R'+80H,B3H
-			DB	'OTI2','R'+80H,B4H
-			DB	'LDD','R'+80H,B8H
-			DB	'CPD','R'+80H,B9H
-			DB	'IND','R'+80H,BAH
-			DB	'OTD','R'+80H,BBH
-			DB	'OTD2','R'+80H,BCH
-			DB	'INIR','X'+80H,C2H
-			DB	'OTIR','X'+80H,C3H
-			DB	'INDR','X'+80H,CAH
-			DB	'OTDR','X'+80H,CBH
+			DB	'NE','G'+80H,044H	; 0Fh
+			DB	'IM',0,'0'+80H,046H
+			DB	'RET','N'+80H,045H
+			DB	'MLT',0,'B','C'+80H,04CH
+			DB	'RET','I'+80H,04DH
+			DB	'IM',0,'1'+80H,056H
+			DB	'MLT',0,'D','E'+80H,05CH
+			DB	'IM',0,'2'+80H,05EH
+			DB	'RR','D'+80H,067H
+			DB	'MLT',0,'H','L'+80H,06CH
+			DB	'LD',0,'MB',0,'A'+80H,06DH
+			DB	'LD',0,'A',0,'M','B'+80H,06EH
+			DB	'RL','D'+80H,06FH
+			DB	'SL','P'+80H,076H
+			DB	'MLT',0,'S','P'+80H,07CH
+			DB	'STMI','X'+80H,07DH
+			DB	'RSMI','X'+80H,07EH
+			DB	'INI','M'+80H,082H
+			DB	'OTI','M'+80H,083H
+			DB	'INI','2'+80H,084H
+			DB	'IND','M'+80H,08AH
+			DB	'OTD','M'+80H,08BH
+			DB	'IND','2'+80H,08CH
+			DB	'INIM','R'+80H,092H
+			DB	'OTIM','R'+80H,093H
+			DB	'INI2','R'+80H,094H
+			DB	'INDM','R'+80H,09AH
+			DB	'OTDM','R'+80H,09BH
+			DB	'IND2','R'+80H,09CH
+			DB	'LD','I'+80H,0A0H
+			DB	'CP','I'+80H,0A1H
+			DB	'IN','I'+80H,0A2H
+			DB	'OUTI','2'+80H,0A4H	; These are swapped round so that FIND will find
+			DB	'OUT','I'+80H,0A3H	; OUTI2 before OUTI
+			DB	'LD','D'+80H,0A8H
+			DB	'CP','D'+80H,0A9H
+			DB	'IN','D'+80H,0AAH
+			DB	'OUTD','2'+80H,0ACH	; Similarly these are swapped round so that FIND
+			DB	'OUT','D'+80H,0ABH	; will find OUTD2 before OUTD
+			DB	'LDI','R'+80H,0B0H
+			DB	'CPI','R'+80H,0B1H
+			DB	'INI','R'+80H,0B2H
+			DB	'OTI','R'+80H,0B3H
+			DB	'OTI2','R'+80H,0B4H
+			DB	'LDD','R'+80H,0B8H
+			DB	'CPD','R'+80H,0B9H
+			DB	'IND','R'+80H,0BAH
+			DB	'OTD','R'+80H,0BBH
+			DB	'OTD2','R'+80H,0BCH
+			DB	'INIR','X'+80H,0C2H
+			DB	'OTIR','X'+80H,0C3H
+			DB	'INDR','X'+80H,0CAH
+			DB	'OTDR','X'+80H,0CBH
 ;
 ; Group 2: (3 opcodes)
 ;
-			DB	'BI','T'+80H,40H	; 44h
-			DB	'RE','S'+80H,80H
-			DB	'SE','T'+80H,C0H
+			DB	'BI','T'+80H,040H	; 44h
+			DB	'RE','S'+80H,080H
+			DB	'SE','T'+80H,0C0H
 ;
 ; Group 3: (7 opcodes)
 ;
@@ -3021,106 +3024,106 @@ OPCODS:			DB	'NO','P'+80H,00h	; # 00h
 ;
 ; Group 4: (3 opcodes)
 ;
-			DB	'PO','P'+80H,C1H	; 4Eh
-			DB	'PUS','H'+80H,C5H
-			DB	'EX',0,'(S','P'+80H,E3H
+			DB	'PO','P'+80H,0C1H	; 4Eh
+			DB	'PUS','H'+80H,0C5H
+			DB	'EX',0,'(S','P'+80H,0E3H
 ;
 ; Group 5: (7 opcodes)
 ;
-			DB	'SU','B'+80H,90H	; 51h
-			DB	'AN','D'+80H,A0H
-			DB	'XO','R'+80H,A8H
-			DB	'O','R'+80H,B0H
-			DB	'C','P'+80H,B8H
-			DB	TAND,A0H		; 56h TAND: Tokenised AND
-			DB	TOR,B0H			; 57h TOR: Tokenised OR
+			DB	'SU','B'+80H,090H	; 51h
+			DB	'AN','D'+80H,0A0H
+			DB	'XO','R'+80H,0A8H
+			DB	'O','R'+80H,0B0H
+			DB	'C','P'+80H,0B8H
+			DB	TAND,0A0H		; 56h TAND: Tokenised AND
+			DB	TOR,0B0H			; 57h TOR: Tokenised OR
 ;
 ; Group 6 (3 opcodes)
 ;
-			DB	'AD','D'+80H,80H	; 58h
-			DB	'AD','C'+80H,88H
-			DB	'SB','C'+80H,98H
+			DB	'AD','D'+80H,080H	; 58h
+			DB	'AD','C'+80H,088H
+			DB	'SB','C'+80H,098H
 ;
 ; Group 7: (2 opcodes)
 ;
-			DB	'IN','C'+80H,04H	; 5Bh
-			DB	'DE','C'+80H,05H
+			DB	'IN','C'+80H,004H	; 5Bh
+			DB	'DE','C'+80H,005H
 ;
 ; Group 8: (2 opcodes)
 ;
-			DB	'IN','0'+80H,00H	; 5Dh
-			DB	'OUT','0'+80H,01H
+			DB	'IN','0'+80H,000H	; 5Dh
+			DB	'OUT','0'+80H,001H
 ;
 ; Group 9: (1 opcode)
 ;
-			DB	'I','N'+80H,40H		; 5Fh
+			DB	'I','N'+80H,040H		; 5Fh
 ;
 ; Group 10: (1 opcode)
 ;
-			DB	'OU','T'+80H,41H	; 60h
+			DB	'OU','T'+80H,041H	; 60h
 ;
 ; Group 11: (2 opcodes)
 ;
-			DB	'J','R'+80H,20H		; 61h
-			DB	'DJN','Z'+80H,10H
+			DB	'J','R'+80H,020H		; 61h
+			DB	'DJN','Z'+80H,010H
 ;
 ; Group 12: (1 opcode)
 ;
-			DB	'J','P'+80H,C2H		; 63h
+			DB	'J','P'+80H,0C2H		; 63h
 ;
 ; Group 13: (1 opcode)
 ;
-			DB	'CAL','L'+80H,C4H	; 64h
+			DB	'CAL','L'+80H,0C4H	; 64h
 ;
 ; Group 14: (1 opcode)
 ;
-			DB	'RS','T'+80H,C7H	; 65h
+			DB	'RS','T'+80H,0C7H	; 65h
 ;
 ; Group 15: (1 opcode)
 ;
-			DB	'RE','T'+80H,C0H	; 66h
+			DB	"RE",123+0x80,0C0H	; 66h
 ;
 ; Group 16: (1 opcode)
 ;
-			DB	'L','D'+80H,40H		; 67h
+			DB	'L','D'+80H,040H		; 67h
 ;
 ; Group 17: (1 opcode)
 ;
-			DB	'TS','T'+80H,04H	; 68h
+			DB	'TS','T'+80H,004H	; 68h
 
 ;
 ; Assembler Directives
 ;
-			DB	'OP','T'+80H,00H	; 69h OPT
-			DB	'AD','L'+80H,00H	; 6Ah ADL
+			DB	'OP','T'+80H,000H	; 69h OPT
+			DB	'AD','L'+80H,000H	; 6Ah ADL
 ;
-			DB	DEF_ & 7FH,'B'+80H,00H	; 6Bh Tokenised DEF + B
-			DB	DEF_ & 7FH,'W'+80H,00H	; 6Ch Tokenised DEF + W
-			DB	DEF_ & 7FH,'L'+80H,00H	; 6Dh Tokenised DEF + L
-			DB 	DEF_ & 7FH,'M'+80H,00H	; 6Eh Tokenised DEF + M
+			DB	DEF_ & 7FH,'B'+80H,000H	; 6Bh Tokenised DEF + B
+			DB	DEF_ & 7FH,'W'+80H,000H	; 6Ch Tokenised DEF + W
+			DB	DEF_ & 7FH,'L'+80H,000H	; 6Dh Tokenised DEF + L
+			DB 	DEF_ & 7FH,'M'+80H,000H	; 6Eh Tokenised DEF + M
 ;
 			DB	0
-;			
+;
 ; Operands
 ;
-OPRNDS:			DB	'B'+80H, 00H
-			DB	'C'+80H, 01H
-			DB	'D'+80H, 02H
-			DB	'E'+80H, 03H
-			DB	'H'+80H, 04H
-			DB	'L'+80H, 05H
-			DB	'(H','L'+80H,06H
-			DB	'A'+80H, 07H
-			DB	'(I','X'+80H,86H
-			DB	'(I','Y'+80H,C6H
+OPRNDS:			DB	'B'+80H, 000H
+			DB	'C'+80H, 001H
+			DB	'D'+80H, 002H
+			DB	'E'+80H, 003H
+			DB	'H'+80H, 004H
+			DB	'L'+80H, 005H
+			DB	'(H','L'+80H,006H
+			DB	'A'+80H, 007H
+			DB	'(I','X'+80H,086H
+			DB	'(I','Y'+80H,0C6H
 ;
-			DB	'B','C'+80H,08H
-			DB	'D','E'+80H,0AH
-			DB	'H','L'+80H,0CH
-			DB	'I','X'+80H,8CH
-			DB	'I','Y'+80H,CCH
-			DB	'A','F'+80H,0EH
-			DB	'S','P'+80H,0EH
+			DB	'B','C'+80H,008H
+			DB	'D','E'+80H,00AH
+			DB	'H','L'+80H,00CH
+			DB	'I','X'+80H,08CH
+			DB	'I','Y'+80H,0CCH
+			DB	'A','F'+80H,00EH
+			DB	'S','P'+80H,00EH
 ;
 			DB	'N','Z'+80H,10H
 			DB	'Z'+80H,11H
@@ -3178,5 +3181,3 @@ EZ80SFS_ADL1:		DB	'S'+80H,52H		; Equivalent to .SIL
 ;
 ; .LIST
 ;
-LF:			EQU     0AH
-CR:			EQU     0DH

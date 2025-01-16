@@ -9,21 +9,22 @@
 ; 11/07/2023:	Fixed *BYE for ADL mode
 ; 26/11/2023:	Moved the ram clear routine into here
 
-			SEGMENT CODE
+			section	.text, "ax", @progbits
 
-			XDEF	_end			
-			
+
+			XDEF	_end
+
 			XREF	_main				; In main.asm
-			
+
 			XREF	RAM_START			; In ram.asm
 			XREF	RAM_END
-			
+
 			.ASSUME	ADL = 1
-				
+
 			INCLUDE	"equs.inc"
-			
+
 argv_ptrs_max:		EQU	16				; Maximum number of arguments allowed in argv
-			
+
 ;
 ; Start in ADL mode
 ;
@@ -31,10 +32,10 @@ argv_ptrs_max:		EQU	16				; Maximum number of arguments allowed in argv
 ;
 ; The header stuff is from byte 64 onwards
 ;
-_exec_name:		DB	"BBCBASIC.BIN", 0		; The executable name, only used in argv	
+_exec_name:		DB	"BBCBASIC.EXE", 0		; The executable name, only used in argv
 
-			ALIGN	64
-			
+			BALIGN	64
+	; TODO!!!!
 			DB	"MOS"				; Flag for MOS - to confirm this is a valid MOS command
 			DB	00h				; MOS header version 0
 			DB	01h				; Flag for run mode (0: Z80, 1: ADL)
@@ -57,12 +58,12 @@ _start:			PUSH		AF			; Preserve the rest of the registers
 			CALL		_clear_ram
 			JP		_main			; Start user code
 ;
-; This bit of code is called from STAR_BYE and returns us safely to MOS
-;			
+; This bit of code is called from STAR_BYE and returns us safely to the OS????
+;
 _end:			LD		SP, (_sps)		; Restore the stack pointer
 
 			POP		IY			; Restore the registers
-			POP		IX			
+			POP		IX
 			POP		DE
 			POP		BC
 			POP		AF
@@ -71,15 +72,15 @@ _end:			LD		SP, (_sps)		; Restore the stack pointer
 ;Clear the application memory
 ;
 _clear_ram:		PUSH		BC
-			LD		HL, RAM_START		
-			LD		DE, RAM_START + 1
-			LD		BC, RAM_END - RAM_START - 1
+			LD		HL, RAM_START
+			LD		DE, RAM_START_P1
+			LD		BC, RAM_SIZE
 			XOR		A
 			LD		(HL), A
 			LDIR
 			POP		BC
 			RET
-						
+
 ; Parse the parameter string into a C array
 ; Parameters
 ; - HL: Address of parameter string
@@ -97,8 +98,8 @@ _parse_params:		LD	BC, _exec_name
 			LD	BC, 1			; C: ARGC = 1 - also clears out top 16 bits of BCU
 			LD	B, argv_ptrs_max - 1	; B: Maximum number of argv_ptrs
 ;
-_parse_params_1:	
-			PUSH	BC			; Stack ARGC	
+_parse_params_1:
+			PUSH	BC			; Stack ARGC
 			PUSH	HL			; Stack start address of token
 			CALL	_get_token		; Get the next token
 			LD	A, C			; A: Length of the token in characters
@@ -130,7 +131,7 @@ _parse_params_1:
 ; -  C: Length of token (in characters)
 ;
 _get_token:		LD	C, 0			; Initialise length
-$$:			LD	A, (HL)			; Get the character from the parameter string
+_get_token_loop:	LD	A, (HL)			; Get the character from the parameter string
 			OR	A			; Exit if 0 (end of parameter string in MOS)
 			RET 	Z
 			CP	13			; Exit if CR (end of parameter string in BBC BASIC)
@@ -139,8 +140,8 @@ $$:			LD	A, (HL)			; Get the character from the parameter string
 			RET	Z
 			INC	HL			; Advance to next character
 			INC 	C			; Increment length
-			JR	$B
-	
+			JR	_get_token_loop
+
 ; Skip spaces in the parameter string
 ; Parameters:
 ; - HL: Address of parameter string
@@ -148,13 +149,13 @@ $$:			LD	A, (HL)			; Get the character from the parameter string
 ; - HL: Address of next none-space character
 ;    F: Z if at end of string, otherwise NZ if there are more tokens to be parsed
 ;
-_skip_spaces:		LD	A, (HL)			; Get the character from the parameter string	
+_skip_spaces:		LD	A, (HL)			; Get the character from the parameter string
 			CP	' '			; Exit if not space
 			RET	NZ
 			INC	HL			; Advance to next character
-			JR	_skip_spaces		; Increment length	
+			JR	_skip_spaces		; Increment length
 
 ; Storage
 ;
 _sps:			DS	3			; Storage for the stack pointer
-_argv_ptrs:		BLKP	argv_ptrs_max, 0	; Storage for the argv array pointers
+_argv_ptrs:		DS	argv_ptrs_max*3		; Storage for the argv array pointers

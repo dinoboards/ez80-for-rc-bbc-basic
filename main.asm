@@ -20,10 +20,10 @@
 
 			INCLUDE	"equs.inc"
 
-			SEGMENT CODE
-			
+			section	.text, "ax", @progbits
+
 			XDEF	_main
-			
+
 			XDEF	COLD
 			XDEF	WARM
 			XDEF	CLOOP
@@ -61,7 +61,9 @@
 			XDEF	ONEDIT1
 			XDEF	LISTIT
 			XDEF	CLEAN
-				
+			XDEF	NEWIT
+			XDEF	BAD
+
 			XREF	LISTON
 			XREF	ERRTXT
 			XREF	OSINIT
@@ -117,40 +119,40 @@
 			XREF	R0
 			XREF	STAR_VERSION
 
-			XREF	_end			; In init.asm			
+			XREF	_end			; In init.asm
 ;
 ; A handful of common token IDs
 ;
-TERROR:			EQU     85H
-LINE_:			EQU     86H
-ELSE_:			EQU     8BH
-THEN:			EQU     8CH
-LINO:			EQU     8DH
-FN:			EQU     A4H
-TO:			EQU     B8H
-REN:			EQU     CCH
-DATA_:			EQU     DCH
-DIM:			EQU     DEH
-FOR:			EQU     E3H
-GOSUB:			EQU     E4H
-GOTO:			EQU     E5H
-TIF:			EQU     E7H
-LOCAL_:			EQU     EAH
-NEXT:			EQU     EDH
-ON_:			EQU     EEH
-PROC:			EQU     F2H
-REM:			EQU     F4H
-REPEAT:			EQU     F5H
-RESTOR:			EQU     F7H
-TRACE:			EQU     FCH
-UNTIL:			EQU     FDH
+TERROR:			EQU     085H
+LINE_:			EQU     086H
+ELSE_:			EQU     08BH
+THEN:			EQU     08CH
+LINO:			EQU     08DH
+FN:			EQU     0A4H
+TO:			EQU     0B8H
+REN:			EQU     0CCH
+DATA_:			EQU     0DCH
+DIM:			EQU     0DEH
+FOR:			EQU     0E3H
+GOSUB:			EQU     0E4H
+GOTO:			EQU     0E5H
+TIF:			EQU     0E7H
+LOCAL_:			EQU     0EAH
+NEXT:			EQU     0EDH
+ON_:			EQU     0EEH
+PROC:			EQU     0F2H
+REM:			EQU     0F4H
+REPEAT:			EQU     0F5H
+RESTOR:			EQU     0F7H
+TRACE:			EQU     0FCH
+UNTIL:			EQU     0FDH
 ;
 ; This defines the block of tokens that are pseudo-variables.
 ; There are two versions of each token, a GET and a SET
 
 ; Name  : GET : SET
 ; ------:-----:----
-; PTR   : 8Fh : CFh 
+; PTR   : 8Fh : CFh
 ; PAGE  : 90h : D0h
 ; TIME  : 91h : D1h
 ; LOMEM : 92h : D2h
@@ -160,9 +162,9 @@ UNTIL:			EQU     FDH
 ;   LET A% = PAGE : REM This is the GET version
 ;   PAGE = 40000  : REM This is the SET version
 ;
-TOKLO:			EQU     8FH			; This defines the block of tokens that are pseudo-variables
-TOKHI:			EQU     93H			; PTR, PAGE, TIME, LOMEM, HIMEM
-OFFSET:			EQU     CFH-TOKLO		; Offset to the parameterised SET versions
+TOKLO:			EQU     08FH			; This defines the block of tokens that are pseudo-variables
+TOKHI:			EQU     093H			; PTR, PAGE, TIME, LOMEM, HIMEM
+OFFSET:			EQU     0CFH-TOKLO		; Offset to the parameterised SET versions
 
 ; The main routine
 ; IXU: argv - pointer to array of parameters
@@ -172,7 +174,7 @@ OFFSET:			EQU     CFH-TOKLO		; Offset to the parameterised SET versions
 ;
 _main:			LD	HL, ACCS		; Clear the ACCS
 			LD	(HL), 0
-			LD	A, C			
+			LD	A, C
 			CP	2
 			JR	Z, AUTOLOAD		; 2 parameters = autoload
 			JR	C, COLD			; 1 parameter = normal start
@@ -182,11 +184,11 @@ _main:			LD	HL, ACCS		; Clear the ACCS
 			DB	"RUN . <filename>\n\r", 0
 			LD	HL, 0			; The error code
 			JP	_end
-;							
+;
 AUTOLOAD:		LD	HL, (IX+3)		; HLU: Address of filename
 			LD	DE, ACCS		;  DE: Destination address
 AUTOLOAD_1:		LD	A, (HL)			; Fetch the filename byte
-			LD	(DE), A			; 
+			LD	(DE), A			;
 			INC	HL			; Increase the source pointer
 			INC	E			; We only need to increase E as ACCS is on a page boundary
 			JR	Z, AUTOLOAD_2		; End if we hit the page boundary
@@ -206,36 +208,36 @@ COLD:			POP	HL			; Pop the return address to init off SPS
 			CALL    OSINIT			; Call the machine specific OS initialisation routines
 			LD      (HIMEM),DE		; This returns HIMEM (ramtop) in DE - store in the HIMEM sysvar
 			LD      (PAGE_),HL		; And PAGE in HL (where BASIC program storage starts) - store in PAGE sysvar
-			LD      A,B7H           	; Set LISTO sysvar; the bottom nibble is LISTO (7), top nibble is OPT (B)
-			LD      (LISTON),A		
+			LD      A,0B7H           	; Set LISTO sysvar; the bottom nibble is LISTO (7), top nibble is OPT (B)
+			LD      (LISTON),A
 			LD      HL,NOTICE
 			LD      (ERRTXT),HL
 			CALL    NEWIT			; From what I can determine, NEWIT always returns with Z flag set
 			LD	A,(ACCS)		; Check if there is a filename in ACCS
 			OR	A
 			JP	NZ,CHAIN0		; Yes, so load and run
-			CALL	STAR_VERSION		; 
+			CALL	STAR_VERSION		;
 			CALL    TELL			; Output the welcome message
 			DB    	"BBC BASIC (Z80) Version 3.00\n\r"
 NOTICE:			DB    	"(C) Copyright R.T.Russell 1987\n\r"
 			DB	"\n\r", 0
-;			
-WARM:			DB 	F6H			; Opcode for OR? Maybe to CCF (the following SCF will be the operand)
+;
+WARM:			DB 	0F6H			; Opcode for OR? Maybe to CCF (the following SCF will be the operand)
 ;
 ; This is the main entry point for BASIC
 ;
 CLOOP:			SCF				; See above - not sure why this is here!
 			LD      SP,(HIMEM)
 			CALL    PROMPT          	; Prompt user
-			LD      HL,LISTON		; Pointer to the LISTO/OPT sysvar 
+			LD      HL,LISTON		; Pointer to the LISTO/OPT sysvar
 			LD      A,(HL)			; Fetch the value
-			AND     0FH             	; Bottom nibble: LISTO
-			OR      B0H             	; Top nibble: Default to OPT (3) with ADL mode bit set to 1 for assembler
+			AND     00FH             	; Bottom nibble: LISTO
+			OR      0B0H             	; Top nibble: Default to OPT (3) with ADL mode bit set to 1 for assembler
 			LD      (HL),A			; Store back in
 			SBC     HL,HL           	; HL: 0
-			LD      (ERRTRP),HL		; Clear ERRTRP sysvar 
+			LD      (ERRTRP),HL		; Clear ERRTRP sysvar
 			LD      (ERRLIN),HL		; Clear ERRLIN sysvar (ON ERROR)
-;			
+;
 			LD      HL,(AUTONO)		; Get the auto line number
 			LD      (LINENO),HL		; Store in line number
 			LD      A,H			; If the auto line number is zero then
@@ -329,14 +331,14 @@ LNZERO:			LD	C,1			; Left mode
 			LD      (TOP),HL		; Store new value of TOP
 			EX      (SP),HL			; HL: TOP (current TOP value), top of stack now contains new TOP value
 			PUSH    HL			; PUSH current TOP value
-			INC     HL			
+			INC     HL
 			OR      A
-			SBC     HL,DE			; DE: Address of the line in memory 
+			SBC     HL,DE			; DE: Address of the line in memory
 			LD      B,H             	; BC: Amount to move
 			LD      C,L
 			POP     HL			; HL: Destination (current TOP value)
 			POP     DE			; DE: Source (new TOP value)
-			JR      Z,ATEND			; If current TOP and new TOP are the same, i.e. adding a line at the end, then skip...		
+			JR      Z,ATEND			; If current TOP and new TOP are the same, i.e. adding a line at the end, then skip...
 			LDDR                    	; Otherwise, make space for the new line in the program
 ATEND:			POP     BC              	; BC: Line length
 			POP     DE              	; DE: Line number
@@ -351,7 +353,7 @@ ATEND:			POP     BC              	; BC: Line length
 			EX      DE,HL			; HL: Location of the new, tokensied line, DE: Destination address in BASIC program
 			DEC     C			; Subtract 3 from the number of bytes to copy to
 			DEC     C			; compensate for the 3 bytes stored above (length and line number)
-			DEC     C	
+			DEC     C
 			LDIR                    	; Add the line to the BASIC program
 			SCF				; To flag we need to call CLEAN
 			RET
@@ -360,145 +362,145 @@ ATEND:			POP     BC              	; BC: Line length
 ; it will only match with the keyword followed immediately by
 ; a delimiter
 ;
-KEYWDS:			DB    80H, 'AND'
-			DB    94H, 'ABS'
-			DB    95H, 'ACS'
-			DB    96H, 'ADVAL'
-			DB    97H, 'ASC'
-			DB    98H, 'ASN'
-			DB    99H, 'ATN'
-			DB    C6H, 'AUTO'
-			DB    9AH, 'BGET', 0
-			DB    D5H, 'BPUT', 0
-			DB    FBH, 'COLOUR'
-			DB    FBH, 'COLOR'
-			DB    D6H, 'CALL'
-			DB    D7H, 'CHAIN'
-			DB    BDH, 'CHR$'
-			DB    D8H, 'CLEAR', 0
-			DB    D9H, 'CLOSE', 0
-			DB    DAH, 'CLG', 0
-			DB    DBH, 'CLS', 0
-			DB    9BH, 'COS'
-			DB    9CH, 'COUNT', 0
-			DB    DCH, 'DATA'
-			DB    9DH, 'DEG'
-			DB    DDH, 'DEF'
-			DB    C7H, 'DELETE'
-			DB    81H, 'DIV'
-			DB    DEH, 'DIM'
-			DB    DFH, 'DRAW'
-			DB    E1H, 'ENDPROC', 0
-			DB    E0H, 'END', 0
-			DB    E2H, 'ENVELOPE'
-			DB    8BH, 'ELSE'
-			DB    A0H, 'EVAL'
-			DB    9EH, 'ERL', 0
-			DB    85H, 'ERROR'
-			DB    C5H, 'EOF', 0
-			DB    82H, 'EOR'
-			DB    9FH, 'ERR', 0
-			DB    A1H, 'EXP'
-			DB    A2H, 'EXT', 0
-			DB    E3H, 'FOR'
-			DB    A3H, 'FALSE', 0
-			DB    A4H, 'FN'
-			DB    E5H, 'GOTO'
-			DB    BEH, 'GET$'
-			DB    A5H, 'GET'
-			DB    E4H, 'GOSUB'
-			DB    E6H, 'GCOL'
-			DB    93H, 'HIMEM', 0
-			DB    E8H, 'INPUT'
-			DB    E7H, 'IF'
-			DB    BFH, 'INKEY$'
-			DB    A6H, 'INKEY'
-			DB    A8H, 'INT'
-			DB    A7H, 'INSTR('
-			DB    C9H, 'LIST'
-			DB    86H, 'LINE'
-			DB    C8H, 'LOAD'
-			DB    92H, 'LOMEM', 0
-			DB    EAH, 'LOCAL'
-			DB    C0H, 'LEFT$('
-			DB    A9H, 'LEN'
-			DB    E9H, 'LET'
-			DB    ABH, 'LOG'
-			DB    AAH, 'LN'
-			DB    C1H, 'MID$('
-			DB    EBH, 'MODE'
-			DB    83H, 'MOD'
-			DB    ECH, 'MOVE'
-			DB    EDH, 'NEXT'
-			DB    CAH, 'NEW', 0
-			DB    ACH, 'NOT'
-			DB    CBH, 'OLD', 0
-			DB    EEH, 'ON'
-			DB    87H, 'OFF'
-			DB    84H, 'OR'
-			DB    8EH, 'OPENIN'
-			DB    AEH, 'OPENOUT'
-			DB    ADH, 'OPENUP'
-			DB    FFH, 'OSCLI'
-			DB    F1H, 'PRINT'
-			DB    90H, 'PAGE', 0
-			DB    8FH, 'PTR', 0
-			DB    AFH, 'PI', 0
-			DB    F0H, 'PLOT'
-			DB    B0H, 'POINT('
-			DB    F2H, 'PROC'
-			DB    B1H, 'POS', 0
-			DB    CEH, 'PUT'
-			DB    F8H, 'RETURN', 0
-			DB    F5H, 'REPEAT'
-			DB    F6H, 'REPORT', 0
-			DB    F3H, 'READ'
-			DB    F4H, 'REM'
-			DB    F9H, 'RUN', 0
-			DB    B2H, 'RAD'
-			DB    F7H, 'RESTORE'
-			DB    C2H, 'RIGHT$('
-			DB    B3H, 'RND', 0
-			DB    CCH, 'RENUMBER'
-			DB    88H, 'STEP'
-			DB    CDH, 'SAVE'
-			DB    B4H, 'SGN'
-			DB    B5H, 'SIN'
-			DB    B6H, 'SQR'
-			DB    89H, 'SPC'
-			DB    C3H, 'STR$'
-			DB    C4H, 'STRING$('
-			DB    D4H, 'SOUND'
-			DB    FAH, 'STOP', 0
-			DB    B7H, 'TAN'
-			DB    8CH, 'THEN'
-			DB    B8H, 'TO'
-			DB    8AH, 'TAB('
-			DB    FCH, 'TRACE'
-			DB    91H, 'TIME', 0
-			DB    B9H, 'TRUE', 0
-			DB    FDH, 'UNTIL'
-			DB    BAH, 'USR'
-			DB    EFH, 'VDU'
-			DB    BBH, 'VAL'
-			DB    BCH, 'VPOS', 0
-			DB    FEH, 'WIDTH'
-			DB    D3H, 'HIMEM'
-			DB    D2H, 'LOMEM'
-			DB    D0H, 'PAGE'
-			DB    CFH, 'PTR'
-			DB    D1H, 'TIME'
+KEYWDS:			DB    080H, 'AND'
+			DB    094H, 'ABS'
+			DB    095H, 'ACS'
+			DB    096H, 'ADVAL'
+			DB    097H, 'ASC'
+			DB    098H, 'ASN'
+			DB    099H, 'ATN'
+			DB    0C6H, 'AUTO'
+			DB    09AH, 'BGET', 0
+			DB    0D5H, 'BPUT', 0
+			DB    0FBH, 'COLOUR'
+			DB    0FBH, 'COLOR'
+			DB    0D6H, 'CALL'
+			DB    0D7H, 'CHAIN'
+			DB    0BDH, 'CHR$'
+			DB    0D8H, 'CLEAR', 0
+			DB    0D9H, 'CLOSE', 0
+			DB    0DAH, 'CLG', 0
+			DB    0DBH, 'CLS', 0
+			DB    09BH, 'COS'
+			DB    09CH, 'COUNT', 0
+			DB    0DCH, 'DATA'
+			DB    09DH, 'DEG'
+			DB    0DDH, 'DEF'
+			DB    0C7H, 'DELETE'
+			DB    081H, 'DIV'
+			DB    0DEH, 'DIM'
+			DB    0DFH, 'DRAW'
+			DB    0E1H, 'ENDPROC', 0
+			DB    0E0H, 'END', 0
+			DB    0E2H, 'ENVELOPE'
+			DB    08BH, 'ELSE'
+			DB    0A0H, 'EVAL'
+			DB    09EH, 'ERL', 0
+			DB    085H, 'ERROR'
+			DB    0C5H, 'EOF', 0
+			DB    082H, 'EOR'
+			DB    09FH, 'ERR', 0
+			DB    0A1H, 'EXP'
+			DB    0A2H, 'EXT', 0
+			DB    0E3H, 'FOR'
+			DB    0A3H, 'FALSE', 0
+			DB    0A4H, 'FN'
+			DB    0E5H, 'GOTO'
+			DB    0BEH, 'GET$'
+			DB    0A5H, 'GET'
+			DB    0E4H, 'GOSUB'
+			DB    0E6H, 'GCOL'
+			DB    093H, 'HIMEM', 0
+			DB    0E8H, 'INPUT'
+			DB    0E7H, 'IF'
+			DB    0BFH, 'INKEY$'
+			DB    0A6H, 'INKEY'
+			DB    0A8H, 'INT'
+			DB    0A7H, 'INSTR('
+			DB    0C9H, 'LIST'
+			DB    086H, 'LINE'
+			DB    0C8H, 'LOAD'
+			DB    092H, 'LOMEM', 0
+			DB    0EAH, 'LOCAL'
+			DB    0C0H, 'LEFT$('
+			DB    0A9H, 'LEN'
+			DB    0E9H, 'LET'
+			DB    0ABH, 'LOG'
+			DB    0AAH, 'LN'
+			DB    0C1H, 'MID$('
+			DB    0EBH, 'MODE'
+			DB    083H, 'MOD'
+			DB    0ECH, 'MOVE'
+			DB    0EDH, 'NEXT'
+			DB    0CAH, 'NEW', 0
+			DB    0ACH, 'NOT'
+			DB    0CBH, 'OLD', 0
+			DB    0EEH, 'ON'
+			DB    087H, 'OFF'
+			DB    084H, 'OR'
+			DB    08EH, 'OPENIN'
+			DB    0AEH, 'OPENOUT'
+			DB    0ADH, 'OPENUP'
+			DB    0FFH, 'OSCLI'
+			DB    0F1H, 'PRINT'
+			DB    090H, 'PAGE', 0
+			DB    08FH, 'PTR', 0
+			DB    0AFH, 'PI', 0
+			DB    0F0H, 'PLOT'
+			DB    0B0H, 'POINT('
+			DB    0F2H, 'PROC'
+			DB    0B1H, 'POS', 0
+			DB    0CEH, 'PUT'
+			DB    0F8H, 'RETURN', 0
+			DB    0F5H, 'REPEAT'
+			DB    0F6H, 'REPORT', 0
+			DB    0F3H, 'READ'
+			DB    0F4H, 'REM'
+			DB    0F9H, 'RUN', 0
+			DB    0B2H, 'RAD'
+			DB    0F7H, 'RESTORE'
+			DB    0C2H, 'RIGHT$('
+			DB    0B3H, 'RND', 0
+			DB    0CCH, 'RENUMBER'
+			DB    088H, 'STEP'
+			DB    0CDH, 'SAVE'
+			DB    0B4H, 'SGN'
+			DB    0B5H, 'SIN'
+			DB    0B6H, 'SQR'
+			DB    089H, 'SPC'
+			DB    0C3H, 'STR$'
+			DB    0C4H, 'STRING$('
+			DB    0D4H, 'SOUND'
+			DB    0FAH, 'STOP', 0
+			DB    0B7H, 'TAN'
+			DB    08CH, 'THEN'
+			DB    0B8H, 'TO'
+			DB    08AH, 'TAB('
+			DB    0FCH, 'TRACE'
+			DB    091H, 'TIME', 0
+			DB    0B9H, 'TRUE', 0
+			DB    0FDH, 'UNTIL'
+			DB    0BAH, 'USR'
+			DB    0EFH, 'VDU'
+			DB    0BBH, 'VAL'
+			DB    0BCH, 'VPOS', 0
+			DB    0FEH, 'WIDTH'
+			DB    0D3H, 'HIMEM'
+			DB    0D2H, 'LOMEM'
+			DB    0D0H, 'PAGE'
+			DB    0CFH, 'PTR'
+			DB    0D1H, 'TIME'
 ;
 ; These are indexed from the ERRWDS table
 ;
-			DB    01H, 'Missing '
-			DB    02H, 'No such '
-			DB    03H, 'Bad '
-			DB    04H, ' range'
-			DB    05H, 'variable'
-			DB    06H, 'Out of'
-			DB    07H, 'No '
-			DB    08H, ' space'
+			DB    001H, 'Missing '
+			DB    002H, 'No such '
+			DB    003H, 'Bad '
+			DB    004H, ' range'
+			DB    005H, 'variable'
+			DB    006H, 'Out of'
+			DB    007H, 'No '
+			DB    008H, ' space'
 
 KEYWDL:			EQU     $-KEYWDS
 			DW    -1
@@ -559,7 +561,7 @@ ERRWDS:			DB    7, 'room', 0		;  0: No room
 DELETE:			CALL    SETTOP          	; Set TOP sysvar (first free byte at end of BASIC program)
 			CALL    DLPAIR			; Get the line number pair - HL: BASIC program address, BC: second number (or 0 if missing)
 DELET1:			LD      A,(HL)			; Check whether it's the last line
-			OR      A			
+			OR      A
 			JP      Z,WARMNC		; Yes, so do nothing
 			INC     HL			; Skip the line length byte
 			LD	DE, 0			; Clear DE
@@ -576,7 +578,7 @@ DELET1:			LD      A,(HL)			; Check whether it's the last line
 			SBC     HL,BC
 			EX      DE,HL
 			JR      NC,WARMNC		; Yes, so exit back to BASIC prompt
-			PUSH    BC			
+			PUSH    BC
 			CALL    DEL			; Delete the line pointed to by HL
 			POP     BC
 			JR      DELET1			; And loop round to the next line
@@ -609,7 +611,7 @@ LIST_:			CP      'O'			; Check for O (LISTO)
 			EX      DE,HL			; DE: Address in memory
 			PUSH    IY			; LD IY, HL
 			POP     HL              	; HL is now the address of the tokenised line
-			LD      A,CR			
+			LD      A,CR
 			PUSH    BC			; Stack the second line number arg
 			LD      BC,256
 			CPIR                    	; Locate CR byte
@@ -649,12 +651,12 @@ LISTC:			PUSH    BC              	; Save second line number
 ; Check if past terminating line number
 ;
 			LD      A,E             	; A: IF clause length
-			INC     HL			; Skip the length byte	
+			INC     HL			; Skip the length byte
 			LD	DE,0			; Clear DE
 			LD      E,(HL)			; Fetch the line number in DE
 			INC     HL
-			LD      D,(HL)          
-			DEC     HL			; Step HL back to the length byte	
+			LD      D,(HL)
+			DEC     HL			; Step HL back to the length byte
 			DEC     HL
 			PUSH    DE             	 	; Push the line number on the stack
 			EX      DE,HL			; HL: line number
@@ -680,7 +682,7 @@ WARMNC:			JP      NC,WARM			; If exceeded the terminating line number then jump 
 			DEC     C			;  C: Line length
 			DEC     C
 			DEC     C
-			DEC     C              	
+			DEC     C
 			PUSH    DE              	; Save the line number
 			PUSH    HL              	; Save the BASIC program address
 			XOR     A               	;
@@ -690,7 +692,7 @@ WARMNC:			JP      NC,WARM			; If exceeded the terminating line number then jump 
 			CALL    NZ,SEARCH      		; If there is an IF clause (B!=0) then search for it
 			POP     HL              	; Restore BASIC program address
 			POP     DE              	; Restore line number
-			PUSH    IY			
+			PUSH    IY
 			CALL    Z,LISTIT        	; List if no IF clause OR there is an IF clause match
 			POP     IY
 ;
@@ -753,7 +755,7 @@ RENUM1:			LD      A,(HL)          	; Fetch the line length byte
 			PUSH    HL
 			INC     H			; Increment to next page
 			SBC     HL,SP			; Subtract from SP
-			POP     HL			
+			POP     HL
 			EX      DE, HL			; HL: Pointer to BASIC program, DE: Pointer to heap
 			JR      C,RENUM1        	; Loop, as the heap pointer has not strayed into the stack page
 			CALL    EXTERR          	; Otherwise throw error: "RENUMBER space'
@@ -771,7 +773,7 @@ RENUM2:			EX      DE,HL			; HL: Pointer to the end of the heap
 			INC     HL
 			LD      (HL),-1
 			LD      DE,(LOMEM)		; DE: Pointer to the start of the heap
-			EXX				
+			EXX
 			LD      HL,(PAGE_)		; HL: Start of the BASIC program area
 RENUM3:			LD      C,(HL)			; Fetch the first line length byte
 			LD      A,C			; If it is zero, then no program, so...
@@ -779,7 +781,7 @@ RENUM3:			LD      C,(HL)			; Fetch the first line length byte
 			JP      Z,WARM			; Jump to warm start
 			EXX				; HL: Pointer to end of heap, DE: Pointer to start of heap
 			EX      DE,HL			; DE: Pointer to end of heap, HL: Pointer to start of heap
-			INC     HL			; Skip to the NEW line number	
+			INC     HL			; Skip to the NEW line number
 			INC     HL
 			LD      E,(HL)			; DE: The NEW line number
 			INC     HL
@@ -812,7 +814,7 @@ RENUM7:			LD      A,LINO			; A: The token code that precedes any line number enc
 			PUSH    HL
 			PUSH    HL			; HL: Pointer to encoded line number
 			POP     IY			; IY: Pointer to encoded line number
-			EXX				 
+			EXX
 			CALL    DECODE			; Decode the encoded line number (in HL')
 			EXX				; HL: Decoded line number
 			LD      B,H			; BC: Decoded line number
@@ -875,10 +877,10 @@ BAD:			CALL    TELL            	; Output "Bad program" error
 			DB    'program'
 			DB    CR
 			DB    LF
-			DB    0				; Falls through to NEW	
+			DB    0				; Falls through to NEW
 ;
 NEW:			CALL    NEWIT			; Call NEWIT (clears program area and variables)
-			JR      CLOOP0			; Jump back indirectly to the command loop via CLOOP0 (optimisation for size)	
+			JR      CLOOP0			; Jump back indirectly to the command loop via CLOOP0 (optimisation for size)
 ;
 ; OLD
 ;
@@ -951,7 +953,7 @@ ERROR0:			CP      (HL)			; Compare the character with 0 (the terminator byte)
 ;
 ERROR1:			PUSH    HL			; Stack the error string pointer and fall through to EXTERR
 
-; 
+;
 ; EXTERR
 ; Inputs:
 ;  A: Error number
@@ -961,7 +963,7 @@ ERROR1:			PUSH    HL			; Stack the error string pointer and fall through to EXTE
 ; > CALL  EXTERR
 ; > DB    "Silly", 0
 ; So we can get the address of the string by popping the return address off the stack
-;			
+;
 EXTERR:			POP     HL			; Pop the error string pointer
 			LD      (ERRTXT),HL		; Store in ERRTXT sysvar
 			LD      SP,(HIMEM)		; Set SP to HIMEM
@@ -986,7 +988,7 @@ ERROR2:			LD      HL,0
 			CALL    REPORT          	; Output the error message
 			CALL    SAYLN			; Output " at line nnnn" message.
 			LD      E,0			; Close all files
-			CALL    C,OSSHUT        	
+			CALL    C,OSSHUT
 			CALL    CRLF			; Output newline
 			JP      CLOOP			; Back to CLOOP
 ;
@@ -1028,14 +1030,14 @@ LEX3:			INC     HL			; Increment the keyword pointer
 			JR      Z,LEX3			; It's a match, so continue checking this keyword
 			CALL    RANGE1			; Is it alphanumeric, '@', '_' or '`'
 			JR      C,LEX5			; No, so check whether keyword needs to be immediately delimited
-;	
+;
 LEX4:			POP     IY              	; Restore the input pointer ready for the next search
 			JR      LEX1			; And loop back to start again
 ;
 ; This section handles the 0 byte at the end of keywords that indicate the keyword needs to be
 ; immediately delimited
 ;
-LEX5:			LD      A,(HL)			; Fetch the byte from the keywords table	
+LEX5:			LD      A,(HL)			; Fetch the byte from the keywords table
 			OR      A			; If it is not zero, then...
 			JR      NZ,LEX4			; Keep searching
 			DEC     IY			; If it is zero, then skip the input pointer back one byte
@@ -1063,7 +1065,7 @@ DEL:			PUSH    DE
 			PUSH    HL
 			EX      DE,HL			; DE: Pointer to the next line
 			LD      HL,(TOP)		; HL: Pointer to the end of the program
-			SBC     HL,DE			
+			SBC     HL,DE
 			LD      B,H			; BC: Size of block to move
 			LD      C,L
 			POP     HL			; HL: Pointer to next line
@@ -1083,8 +1085,8 @@ DEL:			PUSH    DE
 ; Destroys: A,B,C,H,L,F
 ;
 LOAD0: 			LD      DE,(PAGE_)		; DE: Beginning of BASIC program area
-			LD      HL,-256			
-			ADD     HL,SP			
+			LD      HL,-256
+			ADD     HL,SP
 			SBC     HL,DE           	; Find available space
 			LD      B,H
 			LD      C,L
@@ -1093,10 +1095,10 @@ LOAD0: 			LD      DE,(PAGE_)		; DE: Beginning of BASIC program area
 			CALL    NC,NEWIT		; If NC then NEW
 			LD      A,0
 			JP      NC,ERROR_        	; And trigger a "No room" error, otherwise...
-;							
+;
 CLEAN:			CALL    SETTOP			; Set TOP sysvar
 			DEC     HL			; Write out the end of program markers
-			LD      (HL),-1         	
+			LD      (HL),-1
 			DEC     HL
 			LD      (HL),-1
 			JR      CLEAR			; Clear all dynamic variables and function/procedure pointers
@@ -1112,7 +1114,7 @@ SETOP1:			LD      C,(HL)			; BC: Get first byte of program line (line length)
 			INC     C			; Check for zero
 			DEC     C
 			JR      Z,SETOP2		; If it is zero, we've reached the end
-			ADD     HL,BC			; Skip to next line 
+			ADD     HL,BC			; Skip to next line
 			DEC     HL			; Check end of previous line
 			CP      (HL)
 			INC     HL
@@ -1141,7 +1143,7 @@ CLEAR:			PUSH    HL			; Stack the BASIC program pointer
 			LD      (LOMEM),HL		; Set the LOMEM sysvar
 			LD      (FREE),HL		; And the FREE sysvar with that value
 			LD      HL,DYNVAR		; Get the pointer to the dynamic variable pointers buffer in RAM
-			PUSH    BC			
+			PUSH    BC
 			LD      B,3*(54+2)		; Loop counter
 CLEAR1:			LD      (HL),0			; Clear the dynamic variable pointers
 			INC     HL
@@ -1155,7 +1157,7 @@ CLEAR1:			LD      (HL),0			; Clear the dynamic variable pointers
 ;            DE = line number (binary)
 ;            IX = Pointer to LISTON
 ;             B = FOR/NEXT indent level
-;             C = REPEAT/UNTIL indent level 
+;             C = REPEAT/UNTIL indent level
 ;  Destroys: A,D,E,B',C',D',E',H',L',IY,F
 ;
 LISTIT:			PUSH    HL			; Stack the address of the line
@@ -1189,7 +1191,7 @@ LISTIT:			PUSH    HL			; Stack the address of the line
 			CALL    Z,INDENT		; Yes, so indent
 			LD      E,0			; E: The quote counter - reset to 0
 LIST8:			LD      A,(HL)			; Fetch a character / token byte
-			INC     HL			
+			INC     HL
 			CP      CR			; Is it end of line?
 			JR      Z,LISTE			; Yes, so finish (DB: Used to jump to CRLF, modified for *EDIT)
 			CP      34			; Is it a quote character?
@@ -1200,7 +1202,7 @@ LIST7:			CALL    LOUT			; Output the character / token
 ;
 ; DB: Modification for *EDIT
 ; Terminate the line with either a CRLF or a NUL character
-; 
+;
 LISTE:			BIT 	3,(IX)			; Are we printing to buffer?
 			JR	Z, CRLF			; Yes, so print a CRLF
 			XOR	A			; Otherwise print a NUL (0)
@@ -1210,7 +1212,7 @@ LISTE:			BIT 	3,(IX)			; Are we printing to buffer?
 ;
 PRLINO:			PUSH    HL			; Swap HL and IY
 			POP     IY			; IY: Pointer to the line number
-			PUSH    BC		
+			PUSH    BC
 			CALL    DECODE			; Decode
 			POP     BC
 			EXX
@@ -1225,12 +1227,12 @@ PRLINO:			PUSH    HL			; Swap HL and IY
 ; DB: Modification for internationalisation
 ;
 PRREM:			CALL	OUT_			; Output the REM token
-$$:			LD	A, (HL)			; Fetch the character
+.prrem_loop:			LD	A, (HL)			; Fetch the character
 			CP	CR			; If it is end of line, then
 			RET	Z			; we have finished
 			CALL	OUTCHR			; Ouput the character
-			INC	HL			
-			JR	$B			; And loop		
+			INC	HL
+			JR	.prrem_loop		; And loop
 ;
 ; DB: End of modification
 ;
@@ -1241,7 +1243,7 @@ LOUT:			BIT     0,E			; If the quote counter is odd (bit 1 set) then
 			CP      LINO			; Is it a line number (following GOTO/GOSUB etc)?
 			JR      Z,PRLINO		; Yes, so decode and print the line number
 			CALL    OUT_			; Output a character / keyword
-			LD      A,(HL)			; Fetch the next character	
+			LD      A,(HL)			; Fetch the next character
 ;
 ; This block of code handles the indentation
 ; B: Counter for FOR/NEXT indent
@@ -1263,7 +1265,7 @@ IND2_:			CP      REPEAT			; If the token is REPEAT
 			DEC     C			; DEC C
 			JP      P,IND4			; If we have gone below 0 then
 IND3:			INC     C			; Incremet back to 0
-IND4:			EXX		
+IND4:			EXX
 			RET
 ;
 ;CRLF - SEND CARRIAGE RETURN, LINE FEED.
@@ -1283,9 +1285,9 @@ OUTCHR:			CALL    OSWRCH			; Output the character in A
 			LD      A,(COUNT)		; Increment the count
 			INC     A
 ;
-CARRET:			LD      (COUNT),A		; Store the new count value	
+CARRET:			LD      (COUNT),A		; Store the new count value
 			RET     Z			; Return if the count has wrapped to 0
-			PUSH    HL			; Now check if count = print width		
+			PUSH    HL			; Now check if count = print width
 			LD      HL,(WIDTH)		; Get the print width; it's a byte value, so
 			CP      L			; L is the width. Compare it with count.
 			POP     HL
@@ -1325,8 +1327,8 @@ TOKEN1:			LD      A,(HL)			; Fetch the character
 			CP      138			; If A >= 10 or < 128, i.e. we've not hit the token code for the next token
 			PUSH    AF			; Then...
 			CALL    PE,OUTCHR		; Output the character...
-			POP     AF			; 
-			JP      PE,TOKEN1		; And loop to the next character 
+			POP     AF			;
+			JP      PE,TOKEN1		; And loop to the next character
 			POP     HL			; Done, so tidy up the stack and exit
 			POP     BC
 			RET
@@ -1343,7 +1345,7 @@ FINDL:			EX      DE,HL			; DE: Line number (binary)
 			XOR     A               	;  A: 0
 			CP      (HL)			; Check for end of program marker
 			INC     A			;  A: 1
-			RET     NC			; Return with 1 if 0 
+			RET     NC			; Return with 1 if 0
 			XOR     A               	; Clear the carry flag
 ;			LD      B,A			;  B: 0
 			LD	BC, 0			; BC: 0
@@ -1382,7 +1384,7 @@ SET1:			LD      C, (HL)			; Get the length of the line; zero indicates the end o
 			JR      Z, SET3			; We've reached the end of the current BASIC program, not found the line
 			ADD     HL, BC			; Skip to the next line (we set B to 0 at the top of this subroutine)
 			SBC     HL, DE			; Do a 24-bit compare; the previous ADD will have cleared the carry flag
-			ADD     HL, DE			
+			ADD     HL, DE
 			JR      C, SET1			; Loop whilst DE (the address to search for) is > HL (the current line)
 			SBC     HL, BC			; We've found it, so back up to the beginning of the line
 			INC     HL			; Skip the length counter
@@ -1404,10 +1406,10 @@ SET3:			LD      HL, 0			; We've not found the line at this point so
 ;
 SAYLN:			LD      HL,(LINENO)		; Get the LINENO sysvar
 			LD      A,H			; If it is zero then
-			OR      L			
+			OR      L
 			RET     Z			; Don't need to do anything; return with F:C set to 0
 			CALL    TELL			; Output the error message
-			DB    	' at line ', 0		
+			DB    	' at line ', 0
 PBCDL:			LD      C,0			; C: Leading character (NUL)
 			JR      PBCD0			; Output the line number; return with F:C set to 1
 ;
@@ -1431,8 +1433,8 @@ PBCD2:			SBC     HL,DE			; Loop and count how many 10,000s we have
 PBCD3:			OR      C			; A is then an ASCII character, or 00h if we've not processed any non-zero digits yet
 			CALL    NZ,OUTCHR		; If it is not a leading NUL character then output it
 			LD      A,B			; If on first transition, skip this
-			CP      5			; TODO: Need to find out why 
-			JR      Z,PBCD4			 
+			CP      5			; TODO: Need to find out why
+			JR      Z,PBCD4
 			ADD     HL,HL			; HL x  2 : We shift the number being tested left,
 			LD      D,H			;         : rather than shifting DE right
 			LD      E,L			;         : This makes a lot of sense
@@ -1492,7 +1494,7 @@ GETVAR:			LD      A,(IY)			; Get the first character
 			LD      A,(HL)          	; Fetch the number of dimensions
 			OR      A
 			JR      Z,ARRAY			; If there are none, then Error: 'Array'
-			INC     HL			; 
+			INC     HL			;
 			LD      DE,0            	; Accumulator
 			PUSH    AF
 			INC     IY              	; Skip "("
@@ -1504,7 +1506,7 @@ GETV3:			PUSH    HL
 			PUSH    DE
 			CALL    EXPRI			; Get the subscript
 			EXX
-			POP     DE			
+			POP     DE
 			EX      (SP),HL
 			LD      C,(HL)
 			INC     HL
@@ -1512,10 +1514,10 @@ GETV3:			PUSH    HL
 			INC     HL
 			EX      (SP),HL
 			EX      DE,HL
-			PUSH    DE			
+			PUSH    DE
 			CALL    MUL16			; HL=HL*BC
-			POP     DE			
-			ADD     HL,DE			
+			POP     DE
+			ADD     HL,DE
 			EX      DE,HL
 			OR      A
 			SBC     HL,BC
@@ -1541,7 +1543,7 @@ GETVZ:			PUSH    HL              	; Set exit conditions
 			POP     IX
 			LD      A,D
 			CP      A
-			RET			
+			RET
 ;
 ; Process strings, unary & binary indirection:
 ;
@@ -1567,7 +1569,7 @@ GETVA:			PUSH    HL
 			LD      A,D            		; Fetch the variable type
 			CP      129			; Is it a string?
 			RET     Z               	; Yes, so exit here
-			PUSH    BC			
+			PUSH    BC
 			CALL    LOADN           	; Left operand of the binary indirection (var?index or var!index)
 			CALL    SFIX
 			LD	A,L
@@ -1654,7 +1656,7 @@ LOCATE:			SUB     '@'			; Check for valid range
 			LD      DE,STAVAR       	; The static variable area in memory
 			ADD     HL,DE			; HL: The address of the static variable
 			INC     IY			; Skip the program pointer past the static variable name
-			INC     IY	
+			INC     IY
 			LD      D,4             	; Set the type to be integer
 			XOR     A			; Set the Z flag
 			RET
@@ -1662,7 +1664,7 @@ LOCATE:			SUB     '@'			; Check for valid range
 ; At this point it's potentially a dynamic variable, just need to do a few more checks
 ;
 LOC0:			CP      '_'-'@'			; Check the first character is in
-			RET     C			; the range "_" to 
+			RET     C			; the range "_" to
 			CP      'z'-'@'+1		; "z" (lowercase characters only)
 			CCF				; If it is not in range then
 			DEC     A               	; Set NZ flag and
@@ -1690,7 +1692,8 @@ LOC2:			LD	DE, (HL)		; Fetch the original pointer
 			SBC	HL, DE			; Compare with 0
 			POP	HL			; Restore the original pointer
 			JR	Z, LOC6			; If the pointer in DE is zero, the variable is undefined at this point
-			LD	HL, DE			; Make a copy of this pointer in HL
+			PUSH	DE			; Make a copy of this pointer in HL
+			POP	HL
 			INC     HL              	; Skip the link (24-bits)
 			INC     HL
 			INC	HL			; HL: Address of the variable name in DYNVARS
@@ -1726,10 +1729,10 @@ LOC5A:			POP     DE
 TYPE_:			LD      A,(IY-1)		; Check the string type postfix
 			CP      '$'			; Is it a string?
 			LD      D,129			; Yes, so return D = 129
-			RET     Z               		
+			RET     Z
 			CP      '%'			; Is it an integer?
 			LD      D,4			; Yes, so return D = 4
-			RET     Z               		
+			RET     Z
 			INC     D			; At this point it must be a float
 			CP      A			; Set the flags
 			RET
@@ -1744,9 +1747,9 @@ LOC6:			INC     A               	; Set NZ flag
 ;  Outputs: As LOCATE, GETDEF.
 ; Destroys: As LOCATE, GETDEF.
 ;
-CREATE:			XOR     A				
+CREATE:			XOR     A
 			LD      DE,(FREE)		; Get the last byte of available RAM
-			LD	(HL), DE		; Store 
+			LD	(HL), DE		; Store
 			EX      DE,HL
 			LD      (HL),A			; Clear the link of the new entity
 			INC     HL
@@ -1818,7 +1821,7 @@ LINNM1:			LD      A,(IY)			; A: Fetch the digit to add in
 			ADD.S   HL,HL           	; *4S
 			JR      C,TOOBIG
 			ADD.S   HL,DE           	; *5
-			JR      C,TOOBIG	
+			JR      C,TOOBIG
 			ADD.S   HL,HL           	; *10
 			JR      C,TOOBIG
 			LD      E,A			; A->DE: the digit to add in
@@ -1863,7 +1866,7 @@ PAIR1:			CALL    TERMQ			; Check for ELSE, : or CR
 DLPAIR:			CALL    LINNUM			; Parse the first line number
 			PUSH    HL			; Stack it
 			CALL    TERMQ			; Check for ELSE, : or CR
-			JR      Z,DLP1			; And exit if so 
+			JR      Z,DLP1			; And exit if so
 			CP      TIF			; Is the token IF?
 			JR      Z,DLP1			; Yes, so skip the next bit...
 			INC     IY			; Otherwise...
@@ -1895,7 +1898,7 @@ RANGE:			LD      A,(IY)			; Fetch the character
 ;   Plus all characters in RANGE2
 ;
 RANGE1:			CP      '0'			; If it is between '0'...
-			RET     C			 
+			RET     C
 			CP      '9'+1			; And '9'...
 			CCF
 			RET     NC			; Then it is valid
@@ -1904,7 +1907,7 @@ RANGE1:			CP      '0'			; If it is between '0'...
 ;
 ; It is called here to check the following
 ; In range: "A" to "Z", "a' to "z", "_" and "`"
-;	
+;
 RANGE2:			CP      'A'			; If it is between 'A'...
 			RET     C
 			CP      'Z'+1			; And 'Z'...
@@ -1956,13 +1959,13 @@ LEXAN2:			LD      A,E             	; Destination buffer on page boundary, so E c
 			RES	2,C			; FLAG: NOT IN BINARY
 ;
 LEXAN3:			CP      ' '			; Ignore spaces
-			JR      Z,LEXAN1        	
+			JR      Z,LEXAN1
 			CP      ','			; Ignore commas
-			JR      Z,LEXAN1 
+			JR      Z,LEXAN1
 			CP	'2'			; If less than '2'
-			JR	NC, $F			; No, so skip
+			JR	NC, LEXAN3_1		; No, so skip
 			RES	2,C			; FLAG: NOT IN BINARY
-$$:			CP      'G'			; If less then 'G'
+LEXAN3_1:			CP      'G'			; If less then 'G'
 			JR      C,LEXAN4		; Yes, so skip
 			RES     3,C             	; FLAG: NOT IN HEX
 ;
@@ -1975,7 +1978,7 @@ LEXAN4:			CP      34			; Is it a quote character?
 LEXAN5:			BIT     4,C			; Accept line number?
 			JR      Z,LEXAN6		; No, so skip
 			RES     4,C			; FLAG: DON'T ACCEPT LINE NUMBER
-			PUSH    BC			
+			PUSH    BC
 			PUSH    DE
 			CALL    LINNUM         		; Parse the line number to HL
 			POP     DE
@@ -1994,7 +1997,7 @@ LEXAN6:			DEC     C			; Check for C=1 (LEFT)
 			JR      LEXAN8			; And skip
 ;
 ; Processing the LEFT hand side here
-; 
+;
 LEXAN7:			CP      '*'			; Is it a '*' (for star commands)
 			JR      Z,LEXAN9		; Yes, so skip to quit tokenising
 			OR      A			; Set the flags based on the character
@@ -2019,7 +2022,7 @@ LEXAN8:			CP      REM			; If the token is REM
 LEXAN9:			SET     6,C             	; FLAG: STOP TOKENISING
 ;
 LEXANA:			CP      FN			; If the token is FN
-			JR      Z,LEXANB		
+			JR      Z,LEXANB
 			CP      PROC			; Or the token is PROC
 			JR      Z,LEXANB		; Then jump to here
 			CALL    RANGE2			; Otherwise check the input is alphanumeric, "_" or "`"
@@ -2034,8 +2037,8 @@ LEXAND:			CP	'%'			; Check for binary prefix
 			JR	NZ,LEXANE		; If not, skip
 			SET	2,C			; FLAG: IN BINARY
 ;
-LEXANE:			LD      HL,LIST1		; List of tokens that must be followed by a line number	
-			PUSH    BC			
+LEXANE:			LD      HL,LIST1		; List of tokens that must be followed by a line number
+			PUSH    BC
 			LD      BC,LIST1L		; The list length
 			CPIR				; Check if the token is in this list
 			POP     BC
@@ -2046,7 +2049,7 @@ LEXANF:			LD      HL,LIST2		; List of tokens that switch the lexical analysis ba
 			PUSH    BC
 			LD      BC,LIST2L		; The list length
 			CPIR				; Check if the token is in this list
-			POP     BC		
+			POP     BC
 			JR      NZ,LEXANG		; If not, then skip
 			SET     0,C             	; FLAG: ENTER LEFT MODE
 LEXANG:			JP      LEXAN1			; And loop
@@ -2101,13 +2104,13 @@ ENCODE:			SET     4,C			; Set bit 4 of C (for lexical analysis - accept line num
 			AND     3FH			; Strip the top two bits off
 			OR      '@'			; OR with 40h
 			LD      (HL),A			; Store
-			INC     HL		
+			INC     HL
 			LD      A,D			; Get the high byte
 			AND     3FH			; Strip the top two bits off
 			OR      '@'			; OR with 40h
 			LD      (HL),A			; Store
 			INC     HL
-			EX      DE,HL			; DE: string pointer, HL: line number	
+			EX      DE,HL			; DE: string pointer, HL: line number
 			RET
 ;
 ; TEXT - OUTPUT MESSAGE.
@@ -2136,5 +2139,5 @@ TEXT_:			LD      A, (HL)			; Fetch the character
 ;
 TELL:			EX      (SP), HL		; Get the return address off the stack into HL, this is the
 			CALL    TEXT_			; first byte of the string that follows it. Print it, then
-			EX      (SP), HL		; HL will point to the next instruction, swap this back onto the stack	
+			EX      (SP), HL		; HL will point to the next instruction, swap this back onto the stack
 			RET				; at this point we'll return to the first instruction after the message
