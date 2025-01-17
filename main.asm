@@ -63,6 +63,7 @@
 			XDEF	CLEAN
 			XDEF	NEWIT
 			XDEF	BAD
+			XDEF	TEXT_
 
 			XREF	LISTON
 			XREF	ERRTXT
@@ -172,20 +173,45 @@ OFFSET:			EQU     0CFH-TOKLO		; Offset to the parameterised SET versions
 ; Returns:
 ;  HL: Error code, or 0 if OK
 ;
-_main:			LD	HL, ACCS		; Clear the ACCS
-			LD	(HL), 0
-			LD	A, C
-			CP	2
-			JR	Z, AUTOLOAD		; 2 parameters = autoload
-			JR	C, COLD			; 1 parameter = normal start
-			CALL	STAR_VERSION
-			CALL	TELL
-			DB	"Usage:\n\r"
-			DB	"RUN . <filename>\n\r", 0
-			LD	HL, 0			; The error code
-			JP	_end
+; TODO: modify to use normal c starting args
+; if single arg (exe), jumpt to cold start
+; if 2 args (exe and script-name), jump to autoload
+; otherwise output usage message and exit
+
+;int main(const int argc, const char *argv[])
+; IY+3 => argc
+; IY+6 => argv
+_main:			ld	iy, 0
+			add	iy, sp
+
+			ld	hl, (iy + 3)		; argc
+			ld	bc, 1
+			or	a
+			sbc	hl, bc
+			jr	z, COLD
+
+			ld	hl, (iy + 3)		; argc
+			inc	bc
+			jr	z, COLD
+
+			call	STAR_VERSION
+			ld	hl, _usage_message
+			push	hl
+			call	_puts
+			pop	hl
+			ld	hl, 1
+			ret
+
+			; section	.rodata,"a",@progbits
+
+_usage_message:
+			db	"Usage: EXE BBCBASIC [FILENAME.BAS|TXT]", 13, 0
+
+			; section	.text, "ax", @progbits
+
 ;
-AUTOLOAD:		LD	HL, (IX+3)		; HLU: Address of filename
+AUTOLOAD:		ld	iy, (iy + 6)		; iy address of argv[1]
+			ld	hl, (iy + 3)		; HLU: Address of filename
 			LD	DE, ACCS		;  DE: Destination address
 AUTOLOAD_1:		LD	A, (HL)			; Fetch the filename byte
 			LD	(DE), A			;
@@ -198,29 +224,30 @@ AUTOLOAD_2:		DEC	E
 			LD	A, CR
 			LD	(DE), A			; Replace the 0 byte with a CR for BBC BASIC
 ;
-COLD:			POP	HL			; Pop the return address to init off SPS
-			PUSH	HL 			; Stack it on SPL (*BYE will use this as the return address)
-			LD	HL, STAVAR		; Cold start
+COLD:			LD	HL, STAVAR		; Cold start
 			LD	SP, HL
 			LD	(HL), 10
 			INC	HL
 			LD	(HL),9
+			INC	HL
+PURGE:			LD	(HL),A			;CLEAR SCRATCHPAD
+			INC	L
+			JR	NZ,PURGE
+			LD	A,37H		;	V3.0
+			LD	(LISTON),A
+			LD	HL,NOTICE
+			LD	(ERRTXT),HL
 			CALL    OSINIT			; Call the machine specific OS initialisation routines
 			LD      (HIMEM),DE		; This returns HIMEM (ramtop) in DE - store in the HIMEM sysvar
 			LD      (PAGE_),HL		; And PAGE in HL (where BASIC program storage starts) - store in PAGE sysvar
-			LD      A,0B7H           	; Set LISTO sysvar; the bottom nibble is LISTO (7), top nibble is OPT (B)
-			LD      (LISTON),A
-			LD      HL,NOTICE
-			LD      (ERRTXT),HL
 			CALL    NEWIT			; From what I can determine, NEWIT always returns with Z flag set
-			LD	A,(ACCS)		; Check if there is a filename in ACCS
-			OR	A
-			JP	NZ,CHAIN0		; Yes, so load and run
+			; LD	A,(ACCS)		; Check if there is a filename in ACCS
+			; OR	A
+			; JP	NZ,CHAIN0		; Yes, so load and run
 			CALL	STAR_VERSION		;
 			CALL    TELL			; Output the welcome message
-			DB    	"BBC BASIC (Z80) Version 3.00\n\r"
-NOTICE:			DB    	"(C) Copyright R.T.Russell 1987\n\r"
-			DB	"\n\r", 0
+NOTICE:			DB    	"(C) Copyright R.T.Russell 1987", 13, 10
+			DB	13, 10, 0
 ;
 WARM:			DB 	0F6H			; Opcode for OR? Maybe to CCF (the following SCF will be the operand)
 ;

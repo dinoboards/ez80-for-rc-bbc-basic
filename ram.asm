@@ -17,6 +17,7 @@
 			section	.data, "aw", @progbits
 
 
+			XDEF	_ACCS
 			XDEF	ACCS
 			XDEF	BUFFER
 			XDEF	STAVAR
@@ -27,6 +28,7 @@
 			XDEF	TOP
 			XDEF	LOMEM
 			XDEF 	FREE
+			XDEF	_himem
 			XDEF	HIMEM
 			XDEF	LINENO
 			XDEF	TRACEN
@@ -61,6 +63,7 @@
 			BALIGN 		256		; ACCS, BUFFER & STAVAR must be on page boundaries
 RAM_START:
 ;
+_ACCS:
 ACCS:			DS		256             ; String Accumulator
 BUFFER:			DS		256             ; String Input Buffer
 STAVAR:			DS	 	27*4            ; Static Variables
@@ -72,6 +75,7 @@ PAGE_:   		DS		3               ; Start of User Program
 TOP:    		DS		3               ; First Location after User Program
 LOMEM:  		DS		3               ; Start of Dynamic Storage
 FREE:   		DS		3               ; First Free Space Byte
+_himem:
 HIMEM:  		DS		3               ; First Protected Byte
 ;
 LINENO: 		DS		3               ; Line Number
