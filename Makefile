@@ -5,11 +5,13 @@ MAKEFLAGS += --no-builtin-rules
 
 all: BBCBASIC.EXE
 
-FILES := main.asm ram.asm patch.asm init.asm exec.asm eval.asm interrupts.asm misc.asm sound.asm graphics.asm sorry.asm fpp.asm
+# ; init.asm
+FILES := main.asm ram.asm exec.asm eval.asm interrupts.asm misc.asm sound.asm graphics.asm sorry.asm fpp.asm cpm.asm spike.c
 
 .PHONY: BBCBASIC.EXE
 BBCBASIC.EXE:
-	@mkdir -p ../bin
-	@ez80-cc --mem-model 2MB --output-dir ../bin -DEXE=1 -DEZ80CLANG=1 --optimise size BBCBASIC.EXE $(FILES)
+	@mkdir -p ./bin
+	@ez80-cc --mem-model 2MB --output-dir ./bin --optimise size BBCBASIC.EXE $(FILES)
+
 
 
