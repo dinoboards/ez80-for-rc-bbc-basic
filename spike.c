@@ -15,8 +15,8 @@ void debug() {
   // }
 }
 
-#define ABORT_X(name) void abort_##name(uint24_t af, uint24_t bc, uint24_t de, uint8_t *hl) { \
-  printf("Abort " #name ".  AF:%X, BC: %X, DE: %X, HL: %p (*HL): %x\r\n", af, bc, de, hl, *hl); \
+#define ABORT_X(name) void abort_##name(uint24_t af, uint24_t bc, uint24_t de, uint8_t *hl, uint24_t ix) { \
+  printf("Abort " #name ".  AF:%X, BC: %X, DE: %X, HL: %p (*HL): %x, ix: %x\r\n", af, bc, de, hl, *hl, ix); \
   abort();\
 }
 
