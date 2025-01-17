@@ -1055,7 +1055,9 @@ ESCC1:	CALL	HEX
 	RET
 ;
 ;
-COMDS:	DEFM	"BY"
+COMDS:	DB	'AS','M'+80h		; ASM
+	d24	STAR_ASM
+	DEFM	"BY"
 	DEFB	'E'+80H
 	d24	BYE
 	DEFM	"CP"
@@ -1103,6 +1105,9 @@ COMDS:	DEFM	"BY"
 	DEFM	"TYP"
 	DEFB	'E'+80H
 	d24	TYPE
+	DB	'VERSIO','N'+80h	; VERSION
+	d24	STAR_VERSION
+
 	DEFB	0FFH
 ;
 ;Print text
@@ -1616,6 +1621,15 @@ STAR_VERSION:
 	CALL    TELL			; Output the welcome message
 	DB    	"BBC BASIC eZ80 for RC (ADL) Version 1.03", 13, 10, 0
 	RET
+
+; *ASM string
+;
+STAR_ASM:		PUSH	IY			; Stack the BASIC pointer
+			PUSH	HL			; HL = IY
+			POP	IY
+			CALL	ASSEM			; Invoke the assembler
+			POP	IY
+			RET
 
 ; PUTIME: set current time to DE:HL, in centiseconds.
 ;
