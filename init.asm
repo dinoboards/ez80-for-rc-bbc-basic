@@ -71,14 +71,14 @@ _end:			LD		SP, (_sps)		; Restore the stack pointer
 
 ;Clear the application memory
 ;
-_clear_ram:		PUSH		BC
-			LD		HL, RAM_START
-			LD		DE, RAM_START_P1
-			LD		BC, RAM_SIZE
-			XOR		A
-			LD		(HL), A
-			LDIR
-			POP		BC
+_clear_ram:		; PUSH		BC
+			; LD		HL, RAM_START
+			; LD		DE, RAM_START_P1
+			; LD		BC, RAM_SIZE
+			; XOR		A
+			; LD		(HL), A
+			; LDIR
+			; POP		BC
 			RET
 
 ; Parse the parameter string into a C array

@@ -14,7 +14,7 @@
 
 			.ASSUME	ADL = 1
 
-			section	.data, "aw", @progbits
+			section	.bss, "aw", @nobits
 
 
 			XDEF	_ACCS
@@ -120,9 +120,9 @@ R1:			DS		3		;
 ;
 ; This must be at the end
 ;
+	XDEF _RAM_END
+_RAM_END:
 RAM_END:
-			BALIGN	256
-USER:							; Must be aligned on a page boundary
 
 	XDEF	RAM_SIZE
 	XDEF	RAM_START_P1

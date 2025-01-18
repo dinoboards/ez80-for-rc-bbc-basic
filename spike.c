@@ -3,76 +3,56 @@
 #include <stdlib.h>
 
 extern uint24_t himem;
+extern uint8_t CPM_SYS_FCB[36];
+extern uint8_t DISK_BUFFER[128];
 extern uint8_t ACCS[256];
 extern uint8_t OPTVAL;
 extern uint8_t* TABLE[8];
+extern uint8_t TRPCNT;
+extern uint8_t RAM_END[];
+// extern uint8_t *USER;
+extern uint8_t end_of_bss[];
+extern uint8_t _heap[];
 
-void debug() {
+uint24_t debug() {
   printf("HIMEM: %X\r\n", himem);
-  // printf("TABLE: %p\r\n", TABLE);
-  // for(int i = 0; i < 8; i++) {
-  //   printf("  TABLE[%d]: %p\r\n", i, TABLE[i]);
-  // }
+  printf("FCB: %p\r\n", CPM_SYS_FCB);
+  printf("DISK_BUFFER: %p\r\n", DISK_BUFFER);
+  printf("OPTVAL: %p, %x\r\n", &OPTVAL, OPTVAL);
+  printf("TRPCNT: %p, %x\r\n", &TRPCNT, TRPCNT);
+  printf("RAM_END: %p\r\n", RAM_END);
+  // printf("USER: %p, %p\r\n", &USER, *USER);
+  printf("end_of_bss: %p\r\n", end_of_bss);
+  printf("_heap: %p\r\n", _heap);
+
+  uint24_t heap_aligned = ((uint24_t)_heap + 255) & ~255;
+  printf("heap_aligned: %x\r\n", heap_aligned);
+
+
+  printf("TABLE: %p\r\n", TABLE);
+  for(int i = 0; i < 8; i++) {
+    printf("  TABLE[%d]: %p\r\n", i, TABLE[i]);
+  }
+
+  return heap_aligned;
 }
 
-#define ABORT_X(name) void abort_##name(uint24_t af, uint24_t bc, uint24_t de, uint8_t *hl, uint24_t ix) { \
-  printf("Abort " #name ".  AF:%X, BC: %X, DE: %X, HL: %p (*HL): %x, ix: %x\r\n", af, bc, de, hl, *hl, ix); \
+#define ABORT_X(name) void abort_##name(uint24_t af, uint24_t bc, uint24_t de, uint24_t hl, uint24_t ix) { \
+  printf("Abort " #name ".  AF:%X, BC: %X, DE: %X, HL: %X, ix: %X\r\n", af, bc, de, hl, ix); \
   abort();\
 }
 
+#define LOG_X(name) void log_##name(uint24_t af, uint24_t bc, uint24_t de, uint24_t hl, uint24_t ix) { \
+  printf("LOG: " #name ".  AF:%X, BC: %X, DE: %X, HL: %X, ix: %X\r\n", af, bc, de, hl, ix); \
+}
+
 ABORT_X(read)
-ABORT_X(write)
 ABORT_X(exists)
 ABORT_X(dir1)
-ABORT_X(x1)
 
+LOG_X(incsec)
+LOG_X(read)
+LOG_X(read1)
+LOG_X(read2)
+LOG_X(read3)
 
-void abort_bdos1(uint24_t af, uint24_t bc, uint24_t de, uint24_t hl) {
-  printf("Abort BDOS1.  AF:%X, BC: %X, DE: %X, HL: %X\r\n", af, bc, de, hl);
-  abort();
-}
-
-void abort_bdos16(uint24_t af, uint24_t bc, uint24_t de, uint24_t hl) {
-  printf("Abort BDOS16.  AF:%X, BC: %X, DE: %X, HL: %X\r\n", af, bc, de, hl);
-  abort();
-}
-
-void abort_osshut(uint24_t af, uint24_t bc, uint24_t de, uint24_t hl) {
-  printf("Abort OSSHUT.  AF:%X, BC: %X, DE: %X, HL: %X\r\n", af, bc, de, hl);
-  abort();
-}
-
-void abort_seshut(uint24_t af, uint24_t bc, uint24_t de, uint24_t hl) {
-  printf("Abort SESHUT.  AF:%X, BC: %X, DE: %X, HL: %X\r\n", af, bc, de, hl);
-  abort();
-}
-
-void abort_stload(uint24_t af, uint24_t bc, uint24_t de, uint24_t hl) {
-  printf("Abort STLOAD.  AF:%X, BC: %X, DE: %X, HL: %X\r\n", af, bc, de, hl);
-  abort();
-}
-
-void abort_setdma(uint24_t af, uint24_t bc, uint24_t de, uint24_t hl) {
-  printf("Abort SETDMA.  AF:%X, BC: %X, DE: %X, HL: %X\r\n", af, bc, de, hl);
-  abort();
-}
-
-void abort_print1() {
-  printf("Abort PRINT1\r\n");
-  abort();
-}
-
-void abort_print4() {
-  printf("Abort PRINT4\r\n");
-  abort();
-}
-
-void abort_printc() {
-  printf("Abort PRINT c\r\n");
-  abort();
-}
-
-void abort_print3() {
-  printf("Abort PRINT 3:  OPTVAL: %x, ACCS: %p, ACCS[0]: %d\r\n", OPTVAL, ACCS, ACCS[0]);
-  abort();
-}
