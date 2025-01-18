@@ -54,3 +54,17 @@
 .macro			DW24  addr
 			d24	\addr
 .endm
+
+.macro			log name
+	PUSH	IX
+	PUSH	HL
+	PUSH	DE
+	PUSH	BC
+	PUSH	AF
+	CALL	_log_\name
+	POP	AF
+	POP	BC
+	POP	DE
+	POP	HL
+	POP	IX
+.endm
