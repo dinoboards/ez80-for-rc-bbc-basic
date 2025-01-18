@@ -231,6 +231,7 @@ COLD:			LD	HL, STAVAR		; Cold start
 			INC	HL
 			LD	(HL),9
 			INC	HL
+			XOR	A
 PURGE:			LD	(HL),A			;CLEAR SCRATCHPAD
 			INC	L
 			JR	NZ,PURGE
