@@ -28,6 +28,7 @@
 			XDEF	PAGE_
 			XDEF	TOP
 			XDEF	LOMEM
+			XDEF 	_FREE
 			XDEF 	FREE
 			XDEF	_himem
 			XDEF	HIMEM
@@ -76,6 +77,7 @@ PROPTR: 		DS		3               ; Dynamic Procedure Pointers
 PAGE_:   		DS		3               ; Start of User Program
 TOP:    		DS		3               ; First Location after User Program
 LOMEM:  		DS		3               ; Start of Dynamic Storage
+_FREE:
 FREE:   		DS		3               ; First Free Space Byte
 _himem:
 HIMEM:  		DS		3               ; First Protected Byte

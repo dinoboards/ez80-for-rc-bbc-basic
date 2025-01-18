@@ -56,6 +56,7 @@
 .endm
 
 .macro			log name
+	PUSH	IY
 	PUSH	IX
 	PUSH	HL
 	PUSH	DE
@@ -70,6 +71,7 @@
 	POP	DE
 	POP	HL
 	POP	IX
+	POP	IY
 
 	section	.data, "aw", @progbits
 .XX\@:
