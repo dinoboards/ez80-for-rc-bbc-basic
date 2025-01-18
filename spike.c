@@ -13,6 +13,7 @@ extern uint8_t RAM_END[];
 // extern uint8_t *USER;
 extern uint8_t end_of_bss[];
 extern uint8_t _heap[];
+extern uint32_t STAVAR[27];
 
 uint24_t debug() {
   printf("HIMEM: %X\r\n", himem);
@@ -24,6 +25,7 @@ uint24_t debug() {
   // printf("USER: %p, %p\r\n", &USER, *USER);
   printf("end_of_bss: %p\r\n", end_of_bss);
   printf("_heap: %p\r\n", _heap);
+  printf("STAVAR: %p, %lX, %lX, %lX\r\n", STAVAR, STAVAR[0], STAVAR[1], STAVAR[2]);
 
   uint24_t heap_aligned = ((uint24_t)_heap + 255) & ~255;
   printf("heap_aligned: %x\r\n", heap_aligned);
@@ -35,6 +37,10 @@ uint24_t debug() {
   }
 
   return heap_aligned;
+}
+
+void log_info(const char* name, uint24_t af, uint24_t bc, uint24_t de, uint24_t hl, uint24_t ix) { \
+  printf("log: %s.  AF:%X, BC: %X, DE: %X, HL: %X, ix: %X\r\n", name, af, bc, de, hl, ix); \
 }
 
 #define ABORT_X(name) void abort_##name(uint24_t af, uint24_t bc, uint24_t de, uint24_t hl, uint24_t ix) { \

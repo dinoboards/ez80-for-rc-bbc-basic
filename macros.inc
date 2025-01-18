@@ -61,10 +61,20 @@
 	PUSH	DE
 	PUSH	BC
 	PUSH	AF
-	CALL	_log_\name
+	LD	HL, .XX\@
+	push	hl
+	CALL	_log_info
+	pop	hl
 	POP	AF
 	POP	BC
 	POP	DE
 	POP	HL
 	POP	IX
+
+	section	.data, "aw", @progbits
+.XX\@:
+	DB	"\name", 0
+
+	section	.text, "ax", @progbits
+
 .endm

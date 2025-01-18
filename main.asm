@@ -19,6 +19,7 @@
 			.ASSUME	ADL = 1
 
 			INCLUDE	"equs.inc"
+			INCLUDE "macros.inc"
 
 			section	.text, "ax", @progbits
 
