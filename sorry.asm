@@ -14,13 +14,15 @@
 			XDEF	ENVEL
 			XDEF	ADVAL
 			XDEF	PUTIMS
+			XDEF	GETIMS
 
 			XREF	EXTERR
 
 ENVEL:
 ADVAL:
-PUTIMS:
+PUTIMS: ; set time string format
+GETIMS: ; Get time string
 			XOR     A
 			CALL    EXTERR
-			DEFB    "Sorry"
+			DEFM	"Not implemented"
 			DEFB    0

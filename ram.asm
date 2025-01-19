@@ -60,7 +60,7 @@
 
 			XDEF	RAM_START
 			XDEF	RAM_END
-			XDEF	USER
+			XDEF	conversion_store
 
 			BALIGN 		256		; ACCS, BUFFER & STAVAR must be on page boundaries
 RAM_START:
@@ -121,6 +121,9 @@ KEYASCII:		DS		1		; ASCII code of pressed key
 KEYCOUNT:		DS		1		; Counts every time a key is pressed
 R0:			DS		3		; General purpose storage for 8/16 to 24 bit operations
 R1:			DS		3		;
+
+conversion_store:	ds 		4		; Scratch pad to convert integer representations
+
 ;
 ; This must be at the end
 ;
