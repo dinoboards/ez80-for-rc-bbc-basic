@@ -175,7 +175,7 @@ OFFSET:			EQU     0CFH-TOKLO		; Offset to the parameterised SET versions
 ;  HL: Error code, or 0 if OK
 ;
 ; TODO: modify to use normal c starting args
-; if single arg (exe), jumpt to cold start
+; if single arg (exe), jump to cold start
 ; if 2 args (exe and script-name), jump to autoload
 ; otherwise output usage message and exit
 
@@ -193,23 +193,15 @@ _main:			ld	iy, 0
 
 			ld	hl, (iy + 3)		; argc
 			inc	bc
-			jr	z, COLD
+			or	a
+			sbc	hl, bc
+			jr	z, AUTOLOAD
 
 			call	STAR_VERSION
-			ld	hl, _usage_message
-			push	hl
-			call	_puts
-			pop	hl
+			call	TELL
+			db	"Usage: EXE BBCBASIC [FILENAME]", 13, 10, 0
 			ld	hl, 1
 			ret
-
-			; section	.rodata,"a",@progbits
-
-_usage_message:
-			db	"Usage: EXE BBCBASIC [FILENAME.BAS|TXT]", 13, 0
-
-			; section	.text, "ax", @progbits
-
 ;
 AUTOLOAD:		ld	iy, (iy + 6)		; iy address of argv[1]
 			ld	hl, (iy + 3)		; HLU: Address of filename
@@ -243,9 +235,9 @@ PURGE:			LD	(HL),A			;CLEAR SCRATCHPAD
 			LD      (HIMEM),DE		; This returns HIMEM (ramtop) in DE - store in the HIMEM sysvar
 			LD      (PAGE_),HL		; And PAGE in HL (where BASIC program storage starts) - store in PAGE sysvar
 			CALL    NEWIT			; From what I can determine, NEWIT always returns with Z flag set
-			; LD	A,(ACCS)		; Check if there is a filename in ACCS
-			; OR	A
-			; JP	NZ,CHAIN0		; Yes, so load and run
+			LD	A,(ACCS)		; Check if there is a filename in ACCS
+			OR	A
+			JP	NZ,CHAIN0		; Yes, so load and run
 			CALL	STAR_VERSION		;
 			CALL    TELL			; Output the welcome message
 NOTICE:			DB    	"(C) Copyright R.T.Russell 1987", 13, 10
@@ -1120,7 +1112,7 @@ LOAD0: 			LD      DE,(PAGE_)		; DE: Beginning of BASIC program area
 			LD      B,H
 			LD      C,L
 			LD      HL,ACCS
-			CALL    OSLOAD          	; Call the OSLOAD function in patch
+			CALL    OSLOAD
 			CALL    NC,NEWIT		; If NC then NEW
 			LD      A,0
 			JP      NC,ERROR_        	; And trigger a "No room" error, otherwise...

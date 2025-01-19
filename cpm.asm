@@ -1145,28 +1145,9 @@ CPTXTL:	LD	A,(HL)
 OSINIT:	LD	C,45		;*
 	LD	E,254		;*
 	CALL	BDOS		;*
-	;LD	B,INILEN
-	;LD	HL,TABLE
-	;XOR	A
-;CLRTAB:	;LD	(HL),A		;CLEAR FILE TABLE ETC.
-	;INC	HL
-	;DJNZ	CLRTAB
-
-	call	_debug
-	PUSH	HL
-	LD	DE,ACCS
-	; LD	HL,DSKBUF
-	; LD	C,(HL)
-	; INC	HL
-	; CP	C		;N.B. A=B=0
-	; JR	Z,NOBOOT
-	; LDIR			;COPY TO ACC$
-NOBOOT:	EX	DE,HL
-	LD	(HL),CR
-	LD	DE,$3FFFFF	;DE = HIMEM!!!!
+	call	_debug		; retrieve LOMEM aligned to 256 byte boundary
+NOBOOT:	LD	DE,$3FFFFF	;DE = HIMEM!!!!
 	LD	E,A		;PAGE BOUNDARY
-	; LD	HL,(USER)
-	POP	HL
 	RET
 ;
 ;BYE - Stop interrupts and return to CP/M.
