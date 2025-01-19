@@ -14,8 +14,7 @@
 
 			.ASSUME	ADL = 1
 
-			section	.bss, "aw", @nobits
-
+			section	.bss_on_chip, "aw", @progbits
 
 			XDEF	_ACCS
 			XDEF	ACCS
