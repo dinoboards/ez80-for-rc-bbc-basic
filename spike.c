@@ -45,6 +45,7 @@ uint24_t debug() {
 void log_info(const char* name, uint24_t af, uint24_t bc, uint24_t de, uint24_t hl, uint24_t ix, uint24_t iy) { \
   printf("log: %s.  AF:%X, BC: %X, DE: %X, HL: %X, ix: %X, iy: %X\r\n", name, af, bc, de, hl, ix, iy); \
   printf("FREE_FCB_TABLE: %X\r\n", FREE_FCB_TABLE);
+  printf("ACCS(%p): %x, %x, %x\r\n", ACCS, ACCS[0],ACCS[1], ACCS[2]);
   for(int i = 0; i < 8; i++) {
     printf("  TABLE[%d](%p): %p\r\n", i, &TABLE[i], TABLE[i]);
   }
