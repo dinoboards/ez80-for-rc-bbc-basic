@@ -940,14 +940,6 @@ DIR0:	LD	B,4
 DIR1:	CALL	LTRAP
 	LD	DE,FCB
 	LD	HL,DSKBUF
-
-	PUSH	HL
-	PUSH	DE
-	PUSH	BC
-	PUSH	AF
-	CALL	_abort_dir1
-
-
 	CALL	SETDMA
 	LD	A,C
 	CALL	BDOS1		;SEARCH DIRECTORY
@@ -956,8 +948,8 @@ DIR1:	CALL	LTRAP
 	RRCA
 	RRCA
 	AND	60H
+	ld	de, 0
 	LD	E,A
-	LD	D,0
 	LD	HL,DSKBUF+1
 	ADD	HL,DE
 	PUSH	HL
@@ -968,7 +960,7 @@ DIR1:	CALL	LTRAP
 	BIT	7,(HL)		;SYSTEM FILE?
 	POP	HL
 	LD	C,18
-	JR	NZ,DIR1
+	Jr	NZ,DIR1
 	PUSH	BC
 	LD	A,(FCB)
 	DEC	A
@@ -1141,7 +1133,6 @@ CPTXTL:	LD	A,(HL)
 ;            Z-flag reset indicates AUTO-RUN.
 ;  Destroys: A,B,C,D,E,H,L,F
 ;
-; TODO - CHANGE OR MODIFER CALLER TO HANDLE WHEN FN PASSED - DONT USE DSKBUF
 OSINIT:	LD	C,45		;*
 	LD	E,254		;*
 	CALL	BDOS		;*
@@ -1555,8 +1546,6 @@ DEL	EQU	7FH
 ;
 BDOS	EQU	0x200005	; CP/M extended memory marshaller
 ;
-DSKBUF	EQU	80H
-;
 FCBSIZ	EQU	128+36+2
 ;
 	section	.data, "aw", @progbits
@@ -1663,6 +1652,9 @@ EXPR_W2:		CALL	EXPRI			; Get first parameter
 
 FCB	=	_CPM_SYS_FCB
 _FCB	=	_CPM_SYS_FCB
+
+	XREF	_CPM_DMABUF
+DSKBUF	=	_CPM_DMABUF
 
 	section	.bss_z80,"aw",@nobits
 
