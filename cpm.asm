@@ -60,6 +60,8 @@
 	EXTERN	ERRLIN
 	EXTERN	USER
 
+	XREF	conversion_store
+
 	xdef		_OPTVAL
 ;
 ;OSSAVE - Save an area of memory to a file.
@@ -1583,7 +1585,6 @@ FCB_BLOCKS:	DS	FCBSIZ*MAX_OPEN_FILES
 
 	XDEF	PUTIME
 	XDEF	GETIME
-	XDEF	GETIMS
 	XDEF	STAR_VERSION
 	XDEF	PUTCSR
 	XDEF	GETCSR
@@ -1608,18 +1609,43 @@ STAR_ASM:		PUSH	IY			; Stack the BASIC pointer
 
 ; PUTIME: set current time to DE:HL, in centiseconds.
 ;
+	XREF	_set_time
 PUTIME:
+	PUSH	IY
+	PUSH	IX
+	; convert DE:HL to E:UHL
+	ld	(conversion_store), hl		; store lower 2 bytes
+	ld	a, e				; a = upper byte of the 24bit part
+	ld	(conversion_store+2), a		; store it
+	ld	a, d
+	ld	de, 0
+	ld	e, d				; e = high byte of 32 bit number
+	ld 	hl, (conversion_store)		; u(hl) = upper byte of the 24bit part
+	push	de
+	push	hl
+	call	_set_time
+	pop	hl
+	pop	hl
+	POP	IX
+	POP	IY
 	RET
 
 ; GETIME: return current time in DE:HL, in centiseconds
 ;
+	XREF	_get_time
 GETIME:
+	PUSH	IY
+	PUSH	IX
+	CALL	_get_time			; returns 32 bit number in e:uhl
+	; convert E:UHL to DE:HL
+	ld	d, e				; assigned d the upper byte
+	ld	(conversion_store), HL		; extract the u byte from UHL
+	ld	a, (conversion_store+2)		; and place it in e
+	ld	e, a
+	POP	IX
+	POP	IY
 	RET
 
-; GETIMS - Get time from RTC
-;
-GETIMS:
-	RET
 ; PUTCSR: move to cursor to x=DE, y=HL
 ;
 PUTCSR:
