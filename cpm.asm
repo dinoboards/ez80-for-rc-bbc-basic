@@ -1550,7 +1550,7 @@ BDOS	EQU	0x200005	; CP/M extended memory marshaller
 ;
 FCBSIZ	EQU	128+36+2
 ;
-	section	.data, "aw", @progbits
+	section	.data_on_chip, "aw", @progbits
 
 TIME:	DEFS	4
 	XDEF	_TRPCNT
