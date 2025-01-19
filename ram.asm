@@ -86,9 +86,9 @@ LINENO: 		DS		3               ; Line Number
 TRACEN:			DS		3               ; Trace Flag
 AUTONO:			DS		3               ; Auto Flag
 ERRTRP:			DS		3               ; Error Trap
-ERRTXT:			DS		2               ; Error Message Pointer
-DATPTR:			DS		2               ; Data Pointer
-ERL:			DS		2               ; Error Line
+ERRTXT:			DS		3               ; Error Message Pointer
+DATPTR:			DS		3               ; Data Pointer
+ERL:			DS		3               ; Error Line
 ERRLIN:			DS		3               ; The "ON ERROR" Line
 RANDOM:			DS		5               ; Random Number
 COUNT:			DS		1               ; Print Position
@@ -111,7 +111,7 @@ INCREM:			DS		1               ; Auto-Increment Value
 FLAGS:			DS		1		; Miscellaneous flags
 							; - BIT 7: Set if ESC pressed
 							; - BIT 6: Set to disable ESC
-OSWRCHPT:		DS		2		; Pointer for *EDIT
+OSWRCHPT:		DS		3		; Pointer for *EDIT
 OSWRCHCH:		DS		1		; Channel of OSWRCH
 							; - 0: Console
 							; - 1: File
