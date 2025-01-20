@@ -1,0 +1,9 @@
+{
+  "z80-macroasm.format.enabled": true,
+  "z80-macroasm.format.spaceAfterArgument": true,
+  "z80-macroasm.files.exclude": "",
+  "z80-macroasm.format.uppercaseKeywords": true,
+  "z80-macroasm.format.colonAfterLabels": true,
+  "z80-macroasm.suggestOnInstructions": false,
+  "z80-macroasm.format.baseIndent": 2
+}
