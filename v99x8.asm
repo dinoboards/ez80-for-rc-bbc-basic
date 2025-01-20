@@ -9,6 +9,7 @@
 		GLOBAL	STAR_VDP_REGWR
 		GLOBAL	STAR_VDP_CLEAR_MEM
 		GLOBAL	STAR_VDP_CMD_VDP_TO_VRAM
+		GLOBAL	STAR_VDP_GRAPHIC_MODE
 
 		EXTERN	EXPR_24BIT_INT
 
@@ -94,7 +95,7 @@ STAR_VDP_CLEAR_MEM:
 		POP	IY
 		RET
 
-; VDP_CMD_VDP_TO_VRAM x, y, width, height, colour, direction
+; *VDP_CMD_VDP_TO_VRAM x, y, width, height, colour, direction
 
 STAR_VDP_CMD_VDP_TO_VRAM:
 		LEA	IY, IY+19						; skip the VDP_STATUS command
@@ -153,4 +154,49 @@ STAR_VDP_CMD_VDP_TO_VRAM:
 		RET
 
 
+; *VDP_GRAPHIC_MODE num
+STAR_VDP_GRAPHIC_MODE:
+		LEA	IY, IY+16						; skip the VDP_STATUS command
 
+		CALL	NXT 							; SKIP SPACES
+		CALL	EXPR_24BIT_INT 						; Evaluate REG_NUM value
+
+		DEC	L
+		LD	IX, .not_supported_yet
+		JR	Z, .apply_gr_mode
+		DEC	L
+		LD	IX, .not_supported_yet
+		JR	Z, .apply_gr_mode
+		DEC	L
+		LD	IX, .not_supported_yet
+		JR	Z, .apply_gr_mode
+		DEC	L
+		LD	IX, .not_supported_yet
+		JR	Z, .apply_gr_mode
+		DEC	L
+		LD	IX, .not_supported_yet
+		JR	Z, .apply_gr_mode
+		DEC	L
+		LD	IX, _vdp_set_graphic_6
+		JR	Z, .apply_gr_mode
+		DEC	L
+		LD	IX, _vdp_set_graphic_7
+		JR	Z, .apply_gr_mode
+
+		XOR	A
+		CALL	EXTERR
+		DB	"Graphic mode must be a between 1 and 7 (inclusive)", 0
+
+.apply_gr_mode:
+		PUSH	IY
+		LD	HL, .restore_iy
+		PUSH	HL
+		JP	(ix)
+.restore_iy:
+		POP	IY
+		RET
+
+.not_supported_yet:
+		XOR	A
+		CALL	EXTERR
+		DB	"Not implemented yet", 0
