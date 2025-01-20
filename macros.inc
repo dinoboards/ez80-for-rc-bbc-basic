@@ -62,10 +62,22 @@
 	PUSH	DE
 	PUSH	BC
 	PUSH	AF
+	EXX
+	PUSH	HL
+	PUSH	DE
+	PUSH	BC
+	EX	AF, AF'
+	PUSH	AF
 	LD	HL, .XX\@
 	push	hl
 	CALL	_log_info
 	pop	hl
+	POP	AF
+	EX	AF, AF'
+	POP	BC
+	POP	DE
+	POP	HL
+	EXX
 	POP	AF
 	POP	BC
 	POP	DE
