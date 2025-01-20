@@ -1099,6 +1099,8 @@ COMDS:	DB	'AS','M'+80h		; ASM
 	DEFM	"TYP"
 	DEFB	'E'+80H
 	d24	TYPE
+	DB	'VDP_STATU', 'S'+80h
+	d24	STAR_VDP_STATUS
 	DB	'VERSIO','N'+80h	; VERSION
 	d24	STAR_VERSION
 
@@ -1591,8 +1593,6 @@ FCB_BLOCKS:	DS	FCBSIZ*MAX_OPEN_FILES
 	XDEF	GETCSR
 
 	XDEF	EXPR_W2
-
-	; section	.text, "ax", @progbits
 
 STAR_VERSION:
 	CALL    TELL			; Output the welcome message

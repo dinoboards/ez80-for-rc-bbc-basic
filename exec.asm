@@ -265,16 +265,6 @@ XEQ1:			CALL    NXT
 			ADD	HL, BC
 			LD	HL, (HL)		; Table entry
 
-;			ADD     A,A
-;			LD      C,A
-;			LD      B,0
-;			LD      HL,CMDTAB
-;			ADD     HL,BC
-;			LD      A,(HL)          	; Table entry
-;			INC     HL
-;			LD      H,(HL)
-;			LD      L,A
-
 			CALL    NXT
 			JP      (HL)            	; Execute the statement
 
