@@ -6,27 +6,18 @@
 	SECTION	.text, "ax", @progbits
 
 		GLOBAL	STAR_VDP_STATUS
+		GLOBAL	START_VDP_REGWR
 
-		extern	EXPR_24BIT_INT
+		EXTERN	EXPR_24BIT_INT
 
 ; READ THE STATUS REGISTER OF THE VDP INTO THE INTEGER VARIABLE
 
 ; *VDP_STATUS REG_NUM, VAR_NAME
 
 STAR_VDP_STATUS:
-		INC	IY 							; skip the VDP_REGRD command
-		INC	IY
-		INC	IY
-		INC	IY
-		INC	IY
-		INC	IY
-		INC	IY
-		INC	IY
-		INC	IY
-		INC	IY
+		LEA	IY, IY+10 							; skip the VDP_STATUS command
 
 		CALL	NXT 							; SKIP SPACES
-
 		CALL	EXPR_24BIT_INT 						; expect an integer expression
 
 		PUSH	IY
@@ -53,6 +44,33 @@ STAR_VDP_STATUS:
 		LD	(IX+0), HL
 		LD	(IX+3), A
 		LD	(IX+4), A						; INT TYPE
+		RET
+
+; WRITE THE VAR_VAL BYTE TO THE VDP'S CONTROL REGISTER
+
+; *VDP_REGWR REG_NUM, VAR_VAL
+
+START_VDP_REGWR:
+		LEA	IY, IY+9						; skip the VDP_STATUS command
+
+		CALL	NXT 							; SKIP SPACES
+		CALL	EXPR_24BIT_INT 						; Evaluate REG_NUM value
+		PUSH	HL							; SAVE REG NUMBER
+
+		CALL	COMMA
+		CALL	NXT 							; SKIP SPACES
+		CALL	EXPR_24BIT_INT 						; Evaluate REG_VAL value
+
+		POP	DE							; reg_num
+		LD	H, E							; reg_num to high byte
+
+		PUSH	IY							; protect iy
+		PUSH	HL							; low byte is the val
+		LOG	vdp_reg_write
+		CALL	__vdp_reg_write
+		POP	HL
+		POP	IY
+
 		RET
 
 NOT_VAR:
