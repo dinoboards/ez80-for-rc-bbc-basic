@@ -8,6 +8,7 @@
 		GLOBAL	STAR_VDP_STATUS
 		GLOBAL	STAR_VDP_REGWR
 		GLOBAL	STAR_VDP_CLEAR_MEM
+		GLOBAL	STAR_VDP_CMD_VDP_TO_VRAM
 
 		EXTERN	EXPR_24BIT_INT
 
@@ -92,4 +93,64 @@ STAR_VDP_CLEAR_MEM:
 		CALL	_vdp_clear_all_memory
 		POP	IY
 		RET
+
+; VDP_CMD_VDP_TO_VRAM x, y, width, height, colour, direction
+
+STAR_VDP_CMD_VDP_TO_VRAM:
+		LEA	IY, IY+19						; skip the VDP_STATUS command
+
+		CALL	NXT 							; SKIP SPACES
+		CALL	EXPR_24BIT_INT 						; Evaluate REG_NUM value
+		PUSH	HL							; SAVE X
+
+		CALL	COMMA
+		CALL	NXT 							; SKIP SPACES
+		CALL	EXPR_24BIT_INT 						; Evaluate REG_NUM value
+		PUSH	HL							; SAVE Y
+
+		CALL	COMMA
+		CALL	NXT 							; SKIP SPACES
+		CALL	EXPR_24BIT_INT 						; Evaluate REG_NUM value
+		PUSH	HL							; SAVE width
+
+		CALL	COMMA
+		CALL	NXT 							; SKIP SPACES
+		CALL	EXPR_24BIT_INT 						; Evaluate REG_NUM value
+		PUSH	HL							; SAVE height
+
+		CALL	COMMA
+		CALL	NXT 							; SKIP SPACES
+		CALL	EXPR_24BIT_INT 						; Evaluate REG_NUM value
+		PUSH	HL							; SAVE color
+
+		CALL	COMMA
+		CALL	NXT 							; SKIP SPACES
+		CALL	EXPR_24BIT_INT 						; Evaluate REG_NUM value
+										; direction
+
+		POP	DE	; COLOUR					; Create correct argument
+		POP	BC	; HEIGHT					; order for clang call
+		EXX
+		POP	HL	; WIDTH
+		POP	DE	; Y
+		POP	BC	; X
+
+		PUSH	IY							; Protect IY
+		EXX
+		PUSH	HL							; DIRECTION
+		PUSH	DE							; COLOUR
+		PUSH	BC							; HEIGHT
+		EXX
+		PUSH	HL							; WIDTH
+		PUSH	DE							; Y
+		PUSH	BC							; X
+		CALL	_vdp_cmd_vdp_to_vram
+		LD	HL, 18							; restore call stack
+		ADD	HL, SP
+		LD	SP, HL
+
+		POP	IY							; restore iy
+		RET
+
+
 
