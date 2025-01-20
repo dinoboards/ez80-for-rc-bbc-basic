@@ -6,7 +6,8 @@
 	SECTION	.text, "ax", @progbits
 
 		GLOBAL	STAR_VDP_STATUS
-		GLOBAL	START_VDP_REGWR
+		GLOBAL	STAR_VDP_REGWR
+		GLOBAL	STAR_VDP_CLEAR_MEM
 
 		EXTERN	EXPR_24BIT_INT
 
@@ -46,11 +47,22 @@ STAR_VDP_STATUS:
 		LD	(IX+4), A						; INT TYPE
 		RET
 
+NOT_VAR:
+		XOR	A
+		CALL	EXTERR
+		DB	"Expected variable name", 0
+
+BAD_VAR_TYPE:
+		LD	A, 6
+		CALL	EXTERR
+		DB	"String typed variable not allowed", 0
+
+
 ; WRITE THE VAR_VAL BYTE TO THE VDP'S CONTROL REGISTER
 
 ; *VDP_REGWR REG_NUM, VAR_VAL
 
-START_VDP_REGWR:
+STAR_VDP_REGWR:
 		LEA	IY, IY+9						; skip the VDP_STATUS command
 
 		CALL	NXT 							; SKIP SPACES
@@ -73,12 +85,11 @@ START_VDP_REGWR:
 
 		RET
 
-NOT_VAR:
-		XOR	A
-		CALL	EXTERR
-		DB	"Expected variable name", 0
+; *VDP_CLEAR_MEM
 
-BAD_VAR_TYPE:
-		LD	A, 6
-		CALL	EXTERR
-		DB	"String typed variable not allowed", 0
+STAR_VDP_CLEAR_MEM:
+		PUSH	IY
+		CALL	_vdp_clear_all_memory
+		POP	IY
+		RET
+
