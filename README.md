@@ -6,6 +6,89 @@ A port of BBC Basic for eZ80 to run in ADL mode on the ez80-for-rc RC2014/RCBus 
 
 Currently not yet operational - very much a work in progress...
 
+### Custom STAR (*) commands
+
+This BBCBasic interpreter supports a number of platform specific commands.  For the standard Z80 commands see section `5. OPERATING SYSTEM INTERFACE` of the [BBCBasic.txt](/bbcbasic.txt) manual
+
+Additional commands have been added for this specific variant (CP/M ADL) version for the eZ80 for RC
+
+| Command | Description |
+|---------|-------------|
+| *ASM | parse/assemble ez80 assembly |
+| *VERSION | reports the version string of the interpreter |
+| *VDP_... | a number of low-level commands to access a V99x8/TMS9918 VDP hardware directly |
+
+There are a number of *VDP_... commands that assume a V99x8 VDP is installed.  It also assumes the standard MSX i/o port numbers are to be used by the ez80 to access the hardware.
+
+The commands map the V99x8 onchip instructions/commands.  For more detail of what the specific
+commands do and their arguments, please see the V9938/V9958 manuals.
+
+#### *VDP_CLEAR_MEM
+
+`*VDP_CLEAR_MEM`
+
+This command will zero out all RAM within the VDP.
+
+#### *VDP_CMD_LINE
+
+`*VDP_CMD_LINE x, y, long_length, short_length, direction, colour, operation`
+
+The LINE command draws a straight line in the Video or Expansion RAM. The line drawn is the hypotenuse
+that results after the long and short sides of a triangle are defined. The two sides are defined as distances from a single point.
+
+* `x` the starting x-coordinate of the rectangle
+* `y` the starting y-coordinate of the rectangle
+* `long_length` the number of pixels on the long side
+* `short_length` the number of pixels on the short side
+* `colour` the colour code to be painted
+* `direction` the direction of the painting (DIX_RIGHT, DIX_LEFT, DIY_DOWN, DIY_UP)
+* `operation` the logical operation to be performed (CMD_LOGIC_IMP, CMD_LOGIC_AND, ...)
+
+#### VDP_GRAPHIC_MODE
+
+`*VDP_GRAPHIC_MODE mode`
+
+Configure the VDP's control registers to enable the specific graphic mode.
+
+* `mode` must evaluate to a number from 1 to 7 (inclusive)
+
+#### VDP_CMD_VDP_TO_VRAM
+
+`*VDP_CMD_VDP_TO_VRAM x, y, width, height, colour, direction`
+
+VDP command 'High-speed move VDP to VRAM'
+
+This command is used to paint in a specified rectangular area of the VRAM or the expansion RAM.
+
+Since the data to be transferred is done in units of one byte, there is a limitation due to the display mode, on the value for x.
+
+> note that in the G4 and G6 modes, the lower one bit, and in the G5 mode, the lower two bits of x and width, are lost.
+
+* `x` the starting x-coordinate of the rectangle
+* `y` the starting y-coordinate of the rectangle
+* `width` the width of the rectangle in pixels
+* `height` the height of the rectangle in pixels
+* `colour` the colour code to be painted (as per the current graphics mode)
+* `direction` the direction of the painting (DIX_RIGHT, DIX_LEFT, DIY_DOWN, DIY_UP)
+
+#### VDP_REGWR
+
+`*VDP_REGWR reg_num, reg_val`
+
+Write an 8 bit value to one of the VDP's control registers.
+
+* `reg_num` must evaluate to a valid control register number of the VDP
+* `reg_val` must evaluate to an 8 bit number (0-255)
+
+#### *VDP_STATUS
+
+`*VDP_STATUS reg_num, var_name`
+
+Retrieve the current byte from one of the VDP's status registers.
+
+* `reg_num` must evaluate to a valid status register number of the VDP
+* `var_name` must be a number type variable name to receive the status register's value
+
 ### Derived
 
 This code based is derived from the port of BBCBasic for Z80 to the AGON
