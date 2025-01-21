@@ -10,6 +10,7 @@
 		GLOBAL	STAR_VDP_CLEAR_MEM
 		GLOBAL	STAR_VDP_CMD_VDP_TO_VRAM
 		GLOBAL	STAR_VDP_GRAPHIC_MODE
+		GLOBAL	STAR_VDP_CMD_LINE
 
 		EXTERN	EXPR_24BIT_INT
 
@@ -101,32 +102,32 @@ STAR_VDP_CMD_VDP_TO_VRAM:
 		LEA	IY, IY+19						; skip the VDP_STATUS command
 
 		CALL	NXT 							; SKIP SPACES
-		CALL	EXPR_24BIT_INT 						; Evaluate REG_NUM value
+		CALL	EXPR_24BIT_INT 						; Evaluate value
 		PUSH	HL							; SAVE X
 
 		CALL	COMMA
 		CALL	NXT 							; SKIP SPACES
-		CALL	EXPR_24BIT_INT 						; Evaluate REG_NUM value
+		CALL	EXPR_24BIT_INT 						; Evaluate value
 		PUSH	HL							; SAVE Y
 
 		CALL	COMMA
 		CALL	NXT 							; SKIP SPACES
-		CALL	EXPR_24BIT_INT 						; Evaluate REG_NUM value
+		CALL	EXPR_24BIT_INT 						; Evaluate value
 		PUSH	HL							; SAVE width
 
 		CALL	COMMA
 		CALL	NXT 							; SKIP SPACES
-		CALL	EXPR_24BIT_INT 						; Evaluate REG_NUM value
+		CALL	EXPR_24BIT_INT 						; Evaluate value
 		PUSH	HL							; SAVE height
 
 		CALL	COMMA
 		CALL	NXT 							; SKIP SPACES
-		CALL	EXPR_24BIT_INT 						; Evaluate REG_NUM value
+		CALL	EXPR_24BIT_INT 						; Evaluate value
 		PUSH	HL							; SAVE color
 
 		CALL	COMMA
 		CALL	NXT 							; SKIP SPACES
-		CALL	EXPR_24BIT_INT 						; Evaluate REG_NUM value
+		CALL	EXPR_24BIT_INT 						; Evaluate value
 										; direction
 
 		POP	DE	; COLOUR					; Create correct argument
@@ -156,7 +157,7 @@ STAR_VDP_CMD_VDP_TO_VRAM:
 
 ; *VDP_GRAPHIC_MODE num
 STAR_VDP_GRAPHIC_MODE:
-		LEA	IY, IY+16						; skip the VDP_STATUS command
+		LEA	IY, IY+16						; skip the command
 
 		CALL	NXT 							; SKIP SPACES
 		CALL	EXPR_24BIT_INT 						; Evaluate REG_NUM value
@@ -200,3 +201,79 @@ STAR_VDP_GRAPHIC_MODE:
 		XOR	A
 		CALL	EXTERR
 		DB	"Not implemented yet", 0
+
+
+; extern void vdp_cmd_line(
+;     uint16_t x, uint16_t y, uint16_t long_length, uint16_t short_length, uint8_t direction, uint8_t colour, uint8_t operation);
+; *VDP_CMD_LINE x, y, long_length, short_length, direction, colour, operation
+
+STAR_VDP_CMD_LINE:
+		LEA	IY, IY+12						; skip the command
+
+		CALL	NXT 							; SKIP SPACES
+		CALL	EXPR_24BIT_INT 						; Evaluate value
+		PUSH.S	HL							; SAVE X
+
+		CALL	COMMA
+		CALL	NXT 							; SKIP SPACES
+		CALL	EXPR_24BIT_INT 						; Evaluate value
+		PUSH.S	HL							; SAVE Y
+
+		CALL	COMMA
+		CALL	NXT 							; SKIP SPACES
+		CALL	EXPR_24BIT_INT 						; Evaluate value
+		PUSH.S	HL							; SAVE long_length
+
+		CALL	COMMA
+		CALL	NXT 							; SKIP SPACES
+		CALL	EXPR_24BIT_INT 						; Evaluate value
+		PUSH.S	HL							; SAVE short_length
+
+		CALL	COMMA
+		CALL	NXT 							; SKIP SPACES
+		CALL	EXPR_24BIT_INT 						; Evaluate value
+		PUSH.S	HL							; SAVE direction
+
+		CALL	COMMA
+		CALL	NXT 							; SKIP SPACES
+		CALL	EXPR_24BIT_INT 						; Evaluate value
+		PUSH.S	HL							; colour (HL)
+
+		CALL	COMMA
+		CALL	NXT 							; SKIP SPACES
+		CALL	EXPR_24BIT_INT 						; Evaluate value
+		PUSH.S	HL							; operation (HL)
+
+		PUSH	IY
+
+		LD	HL, 0
+
+		POP.S	HL				; operation
+		PUSH	HL
+
+		POP.S	HL				; colour
+		PUSH	HL
+
+		POP.S	HL				; direction
+		PUSH	HL
+
+		POP.S	HL				; short_length
+		PUSH	HL
+
+		POP.S	HL				; long_length
+		PUSH	HL
+
+		POP.S	HL				; y
+		PUSH	HL
+
+		POP.S	HL				; x
+		PUSH	HL
+
+		CALL	_vdp_cmd_line
+		LD	HL, 7*3							; restore call stack
+		ADD	HL, SP
+		LD	SP, HL
+
+		POP	IY							; restore iy
+
+		RET
