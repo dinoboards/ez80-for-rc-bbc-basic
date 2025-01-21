@@ -11,6 +11,7 @@
 		GLOBAL	STAR_VDP_CMD_VDP_TO_VRAM
 		GLOBAL	STAR_VDP_GRAPHIC_MODE
 		GLOBAL	STAR_VDP_CMD_LINE
+		GLOBAL	STAR_DRAW_LINE
 
 		EXTERN	EXPR_24BIT_INT
 
@@ -276,4 +277,64 @@ STAR_VDP_CMD_LINE:
 
 		POP	IY							; restore iy
 
+		RET
+
+; void vdp_draw_line(uint16_t from_x, uint16_t from_y, uint16_t to_x, uint16_t to_y, uint8_t colour, uint8_t operation) {
+
+; *VDP_DRAW_LINE x1, y1, x2, y2, colour, operation
+
+STAR_DRAW_LINE:
+		LEA	IY, IY+13						; skip the VDP_STATUS command
+
+		CALL	NXT 							; SKIP SPACES
+		CALL	EXPR_24BIT_INT 						; Evaluate value
+		PUSH	HL							; SAVE x1
+
+		CALL	COMMA
+		CALL	NXT 							; SKIP SPACES
+		CALL	EXPR_24BIT_INT 						; Evaluate value
+		PUSH	HL							; SAVE y1
+
+		CALL	COMMA
+		CALL	NXT 							; SKIP SPACES
+		CALL	EXPR_24BIT_INT 						; Evaluate value
+		PUSH	HL							; SAVE x2
+
+		CALL	COMMA
+		CALL	NXT 							; SKIP SPACES
+		CALL	EXPR_24BIT_INT 						; Evaluate value
+		PUSH	HL							; SAVE y2
+
+		CALL	COMMA
+		CALL	NXT 							; SKIP SPACES
+		CALL	EXPR_24BIT_INT 						; Evaluate value
+		PUSH	HL							; SAVE color
+
+		CALL	COMMA
+		CALL	NXT 							; SKIP SPACES
+		CALL	EXPR_24BIT_INT 						; Evaluate value
+										; direction
+
+		POP	DE	; COLOUR					; Create correct argument
+		POP	BC	; y2						; order for clang call
+		EXX
+		POP	HL	; x2
+		POP	DE	; y1
+		POP	BC	; x1
+
+		PUSH	IY							; Protect IY
+		EXX
+		PUSH	HL							; DIRECTION
+		PUSH	DE							; COLOUR
+		PUSH	BC							; HEIGHT
+		EXX
+		PUSH	HL							; WIDTH
+		PUSH	DE							; Y
+		PUSH	BC							; X
+		CALL	_vdp_draw_line
+		LD	HL, 18							; restore call stack
+		ADD	HL, SP
+		LD	SP, HL
+
+		POP	IY							; restore iy
 		RET
