@@ -180,24 +180,6 @@ COLOUR_2:		CALL	COMMA
 			VDU	(VDU_BUFFER+3)		; B
 			JP	XEQ
 
-; GCOL mode,colour
-;
-GCOL:			CALL	EXPRI			; Parse MODE
-			EXX
-			LD	A, L
-			LD	(VDU_BUFFER+0), A
-			CALL	COMMA
-;
-			CALL	EXPRI			; Parse Colour
-			EXX
-			LD	A, L
-			LD	(VDU_BUFFER+1), A
-;
-			VDU	12h			; VDU:GCOL
-			VDU	(VDU_BUFFER+0)		; Mode
-			VDU	(VDU_BUFFER+1)		; Colour
-			JP	XEQ
-
 ; PLOT mode,x,y
 ;
 PLOT:			CALL	EXPRI		; Parse mode
@@ -214,31 +196,40 @@ PLOT_1:			VDU	19H		; VDU code for PLOT
 			VDU	H
 			JP	XEQ
 
+; GCOL mode,colour
+; GCOL mode,red,green,blue
+;
+GCOL:			LD	(_IY), IY
+			CALL	_gcol
+			LD	IY, (_IY)
+			JP	XEQ
+
+
 ; MOVE x,y
 ;
-MOVE:			CALL	EXPR_W2		; Parse X and Y
-			LD	C, 04H		; Plot mode 04H (Move)
-			JR	PLOT_1		; Plot
+MOVE:			LD	(_IY), IY
+			CALL	_move
+			LD	IY, (_IY)
+			JP	XEQ
 
 ; DRAW x1,y1
 ; DRAW x1,y1,x2,y2
 ;
-DRAW:			CALL	EXPR_W2		; Get X1 and Y1
-			CALL	NXT		; Are there any more parameters?
-			CP	','
-			LD	C, 05h		; Code for LINE
-			JR	NZ, PLOT_1	; No, so just do DRAW x1,y1
-			VDU	19h		; Move to the first coordinates
-			VDU	04h
-			VDU	E
-			VDU	D
-			VDU	L
-			VDU	H
-			CALL	COMMA
-			PUSH	BC
-			CALL	EXPR_W2		; Get X2 and Y2
-			POP	BC
-			JR	PLOT_1		; Now DRAW the line to those positions
+DRAW:			LD	(_IY), IY
+			CALL	_draw
+			LD	IY, (_IY)
+			JP	XEQ
 
 
+	global VDU
+VDU:			LD	(_IY), IY
+			CALL	_vdu
+			LD	IY, (_IY)
+			JP	XEQ
 
+	global _vdu_not_implemented
+
+_vdu_not_implemented:
+		LD	A, 0
+		CALL	EXTERR
+		DB	"VDU Function not implemented", 0
