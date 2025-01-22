@@ -24,3 +24,34 @@ EXPR_24BIT_INT:
 	LD	HL, (conversion_store)
 	RET
 
+
+
+; extern uint24_t expr_int24(uint8_t** iy);
+
+	global	_expr_int24
+
+_expr_int24:
+	push	ix
+	ld	iy, (_IY)
+	call	EXPR_24BIT_INT
+	ld	(_IY), iy
+	pop	ix
+	ret
+
+
+; extern void comma(uint8_t** iy);
+
+	global	_comma
+
+_comma:
+	push	ix
+	ld	iy, (_IY)
+	call	COMMA
+	ld	(_IY), iy
+	pop	ix
+	ret
+
+	global	_IY
+
+_IY:	dw24 	0
+
