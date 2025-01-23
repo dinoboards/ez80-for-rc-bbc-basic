@@ -26,10 +26,11 @@
 			XDEF	PROPTR
 			XDEF	PAGE_
 			XDEF	TOP
+			XDEF	_LOMEM
 			XDEF	LOMEM
 			XDEF 	_FREE
 			XDEF 	FREE
-			XDEF	_himem
+			XDEF	_HIMEM
 			XDEF	HIMEM
 			XDEF	LINENO
 			XDEF	TRACEN
@@ -75,10 +76,11 @@ PROPTR: 		DS		3               ; Dynamic Procedure Pointers
 ;
 PAGE_:   		DS		3               ; Start of User Program
 TOP:    		DS		3               ; First Location after User Program
+_LOMEM:
 LOMEM:  		DS		3               ; Start of Dynamic Storage
 _FREE:
 FREE:   		DS		3               ; First Free Space Byte
-_himem:
+_HIMEM:
 HIMEM:  		DS		3               ; First Protected Byte
 ;
 LINENO: 		DS		3               ; Line Number

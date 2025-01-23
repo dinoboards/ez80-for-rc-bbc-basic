@@ -1,25 +1,11 @@
+#include "ram.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-extern uint24_t himem;
-extern uint8_t  CPM_SYS_FCB[36];
-extern uint8_t  DISK_BUFFER[128];
-extern uint8_t  ACCS[256];
-extern uint8_t  OPTVAL;
-extern uint8_t *TABLE[8];
-extern uint8_t  TRPCNT;
-extern uint8_t  RAM_END[];
-// extern uint8_t *USER;
-extern uint8_t  end_of_bss[];
-extern uint8_t  _heap[];
-extern uint32_t STAVAR[27];
-extern uint24_t FREE;
-extern uint8_t  FCB_BLOCKS[];
-extern uint24_t FREE_FCB_TABLE;
-
-uint24_t debug() {
-  printf("HIMEM: %X\r\n", himem);
+void debug() {
+  printf("HIMEM: %p\r\n", HIMEM);
+  printf("LOMEM: %p\r\n", LOMEM);
   printf("FREE: %X\r\n", FREE);
   printf("FCB: %p\r\n", CPM_SYS_FCB);
   printf("DISK_BUFFER: %p\r\n", DISK_BUFFER);
@@ -31,15 +17,10 @@ uint24_t debug() {
   printf("STAVAR: %p, %lX, %lX, %lX\r\n", STAVAR, STAVAR[0], STAVAR[1], STAVAR[2]);
   printf("FREE_FCB_TABLE: %X\r\n", FREE_FCB_TABLE);
 
-  uint24_t heap_aligned = ((uint24_t)_heap + 255) & ~255;
-  printf("heap_aligned: %x\r\n", heap_aligned);
-
   printf("TABLE: %p\r\n", TABLE);
   for (int i = 0; i < 8; i++) {
     printf("  TABLE[%d]: %p\r\n", i, TABLE[i]);
   }
-
-  return heap_aligned;
 }
 
 void log_info(const char *name,
