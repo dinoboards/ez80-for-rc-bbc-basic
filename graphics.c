@@ -8,6 +8,9 @@ extern uint8_t *IY;
 extern uint24_t expr_int24();
 extern void     comma();
 extern void     vdu_not_implemented() __attribute__((noreturn));
+extern void     error_arguments() __attribute__((noreturn));
+extern void     error_syntax_error() __attribute__((noreturn));
+extern uint8_t  nxt();
 
 const uint24_t origin_x = 0;
 const uint24_t origin_y = 0;
@@ -20,9 +23,12 @@ const uint24_t scale_height = 1024;
 
 RGB current_colour = {0};
 
-uint24_t convert_x(uint24_t logical_x) { return vdp_get_screen_width() * logical_x / scale_width; }
+#define MAX_VDP_BYTES 16
+static uint8_t data[MAX_VDP_BYTES];
 
-uint24_t convert_y(uint24_t logical_y) { return vdp_get_screen_height() * (scale_height - logical_y) / scale_height; }
+uint24_t convert_x(uint24_t logical_x) { return vdp_get_screen_width() * (logical_x + origin_x) / scale_width; }
+
+uint24_t convert_y(uint24_t logical_y) { return vdp_get_screen_height() * (scale_height - (logical_y + origin_y)) / scale_height; }
 
 void move() {
   printf("iy is at %p.  iy[0]=%x, iy[1]=%x, iy[2]=%x\r\n", IY, IY[0], IY[1], IY[2]);
@@ -71,28 +77,41 @@ void gcol() {
   current_colour.blue = expr_int24();
 }
 
+uint8_t consume_numbers();
+
 void vdu() {
 
-  uint24_t vdu_fn = expr_int24();
+  uint8_t count = consume_numbers();
+  printf("Received %d bytes [0]=%d\r\n", count, data[0]);
 
-  switch (vdu_fn) {
+  uint8_t x = data[0];
+  printf("x = %d\r\n", x);
+  switch (x) {
   case 19: // palette
   {
+    if (count != 6)
+      vdu_not_implemented();
+
     // VDU 19,logical,-1,r,g,b
-    uint24_t logical = expr_int24();
-    comma();
-    int24_t physical = expr_int24();
+    uint8_t logical  = data[1];
+    int8_t  physical = data[2];
     if (physical != -1)
       vdu_not_implemented();
 
-    comma();
-    uint24_t red = expr_int24();
-    comma();
-    uint24_t green = expr_int24();
-    comma();
-    uint24_t blue = expr_int24();
+    uint8_t red   = data[3];
+    uint8_t green = data[4];
+    uint8_t blue  = data[5];
 
     printf("TODO: VDU 19,%d,%d,%d,%d,%d\r\n", logical, physical, red, green, blue);
+
+    break;
+  }
+
+  // VDU 29,640;512;
+  // VUD 29,128,2,0,2
+  case 29: // set origin
+  {
+    vdu_not_implemented();
 
     break;
   }
@@ -100,4 +119,47 @@ void vdu() {
   default:
     vdu_not_implemented();
   }
+}
+
+uint8_t consume_numbers() {
+  // if number ends in a ';' then its a word
+  // if comma or line end, its a byte
+
+  int i = 0;
+
+next:
+  if (i >= MAX_VDP_BYTES)
+    error_arguments();
+
+  uint24_t value = expr_int24();
+
+  uint8_t separator = nxt();
+
+  if (separator == ',') {
+    data[i] = value & 255;
+    i++;
+    IY++;
+    goto next;
+  }
+
+  if (separator == ';') {
+    data[i++] = value & 255;
+    if (i >= MAX_VDP_BYTES)
+      error_arguments();
+    data[i++] = (value >> 8) & 255;
+    IY++;
+    // may be end of line???
+    if (nxt() == '\r') {
+      return i;
+    }
+
+    goto next;
+  }
+
+  if (separator == '\r') {
+    data[i++] = value & 255;
+    return i;
+  }
+
+  error_syntax_error();
 }

@@ -39,7 +39,7 @@ _expr_int24:
 	ret
 
 
-; extern void comma(uint8_t** iy);
+; extern void comma();
 
 	global	_comma
 
@@ -50,6 +50,19 @@ _comma:
 	ld	(_IY), iy
 	pop	ix
 	ret
+
+; extern uint8_t nxt(uint8_t** iy);
+
+	global	_nxt
+
+_nxt:
+	push	ix
+	ld	iy, (_IY)
+	call	NXT
+	ld	(_IY), iy
+	pop	ix
+	ret
+
 
 	global	_IY
 
