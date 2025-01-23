@@ -8,6 +8,9 @@ ez80-clang ${INCLUDE_PATHS} -nostdinc -ffunction-sections -fdata-sections -O2 -W
 echo "Compiling ez80-timer.c -> ez80-timer.s"
 ez80-clang ${INCLUDE_PATHS} -nostdinc -ffunction-sections -fdata-sections -O2 -Wall -Wextra -Wunreachable-code -Werror -mllvm -z80-print-zero-offset -S ez80-timer.c -c -o ez80-timer.s
 
+echo "Compiling graphics.c -> graphics.s"
+ez80-clang ${INCLUDE_PATHS} -nostdinc -ffunction-sections -fdata-sections -O2 -Wall -Wextra -Wunreachable-code -Werror -mllvm -z80-print-zero-offset -S graphics.c -c -o graphics.s
+
 # echo "Compiling hello-world.s -> hello-world.o"
 # ez80-as -march=ez80+full -a=./hello-world.lst ./hello-world.s -o ./hello-world.o
 

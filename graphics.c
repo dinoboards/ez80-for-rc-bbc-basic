@@ -12,8 +12,8 @@ extern void     error_arguments() __attribute__((noreturn));
 extern void     error_syntax_error() __attribute__((noreturn));
 extern uint8_t  nxt();
 
-const uint24_t origin_x = 0;
-const uint24_t origin_y = 0;
+uint24_t origin_x = 0;
+uint24_t origin_y = 0;
 
 uint24_t current_x;
 uint24_t current_y;
@@ -78,6 +78,7 @@ void gcol() {
 }
 
 uint8_t consume_numbers();
+void    set_origin();
 
 void vdu() {
 
@@ -87,12 +88,13 @@ void vdu() {
   uint8_t x = data[0];
   printf("x = %d\r\n", x);
   switch (x) {
-  case 19: // palette
+
+  // VDU 19,logical,-1,r,g,b
+  case 19: // set palette
   {
     if (count != 6)
       vdu_not_implemented();
 
-    // VDU 19,logical,-1,r,g,b
     uint8_t logical  = data[1];
     int8_t  physical = data[2];
     if (physical != -1)
@@ -108,10 +110,21 @@ void vdu() {
   }
 
   // VDU 29,640;512;
-  // VUD 29,128,2,0,2
+  // VDU 29,128,2,0,2
   case 29: // set origin
   {
-    vdu_not_implemented();
+    if (count != 5)
+      error_arguments();
+
+    uint8_t *const bptr_origin_x = (uint8_t *)&origin_x;
+    bptr_origin_x[0]             = data[1];
+    bptr_origin_x[1]             = data[2];
+    bptr_origin_x[2]             = 0;
+
+    uint8_t *const bptr_origin_y = (uint8_t *)&origin_y;
+    bptr_origin_y[0]             = data[3];
+    bptr_origin_y[1]             = data[4];
+    bptr_origin_y[2]             = 0;
 
     break;
   }
