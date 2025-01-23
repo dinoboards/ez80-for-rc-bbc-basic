@@ -125,6 +125,9 @@
 			XREF	PUTCSR
 			XREF	OUT_
 			XREF	R0
+
+			global _error_arguments
+			global _error_syntax_error
 ;
 ; List of token values used in this module
 ;
@@ -367,6 +370,7 @@ ASM:			LD      (ERRLIN),IY
 VAR_:			CALL    GETVAR
 			RET     Z
 			JP      NC,PUTVAR
+_error_syntax_error:
 SYNTAX:			LD      A,16            ;"Syntax error"
 			JR	ERROR0
 ESCAPE:			LD      A,17            ;"Escape"
@@ -1798,6 +1802,7 @@ ARGUE4:			CALL    NXT			; Skip whitespace
 			CP      ','			; Are there any more arguments?
 			JR      Z,ARGUE1        	; Yes, so loop
 ;
+_error_arguments:
 ARGERR:			LD      A,31
 			JP      ERROR_           	; Throw error "Arguments"
 ;
