@@ -1155,8 +1155,13 @@ OSINIT:		LD	C, 45		;*
 		LD	E, 254		;*
 		CALL	BDOS		;*
 		CALL	_debug		; retrieve LOMEM aligned to 256 byte boundary
-NOBOOT:		LD	DE, $3FFFFF	;DE = HIMEM!!!!
-		LD	E, A		;PAGE BOUNDARY
+NOBOOT:
+		CALL	_osinit
+		LD	HL, (_LOMEM)
+		LD	DE, (_HIMEM)
+
+		; LD	DE, $3FFFFF	;DE = HIMEM!!!!
+		; LD	E, A		;PAGE BOUNDARY
 		RET
 ;
 ;BYE - Stop interrupts and return to CP/M.
