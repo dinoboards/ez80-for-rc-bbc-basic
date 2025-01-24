@@ -63,6 +63,65 @@ _nxt:
 	pop	ix
 	ret
 
+; void oswrite(uint8_t ch);
+
+	global	_oswrite
+
+_oswrite:
+	push	ix
+	ld	ix, 0
+	add	ix, sp
+	ld	a, (ix+6)
+	ld	iy, (_IY)
+	call	OSWRCH
+	ld	(_IY), iy
+	pop	ix
+	ret
+
+; void oswrite_int16(uint16_t d);
+
+	global	_oswrite_int16
+
+_oswrite_int16:
+	push	ix
+	ld	ix, 0
+	add	ix, sp
+	ld	a, (ix+6)
+	ld	iy, (_IY)
+	call	OSWRCH
+	ld	a, (ix+7)
+	call	OSWRCH
+	ld	(_IY), iy
+	pop	ix
+	ret
+
+
+; void oswrite_point(const point_t *p);
+
+
+	global	_oswrite_point
+
+_oswrite_point:
+	push	ix
+	ld	ix, 0
+	add	ix, sp
+	ld	hl, (ix+6)
+	ld	iy, (_IY)
+	ld	a, (hl)
+	call	OSWRCH
+	inc	hl
+	ld	a, (hl)
+	call	OSWRCH
+	inc	hl
+	ld	a, (hl)
+	call	OSWRCH
+	inc	hl
+	ld	a, (hl)
+	call	OSWRCH
+	ld	(_IY), iy
+	pop	ix
+	ret
+
 
 	global	_IY
 

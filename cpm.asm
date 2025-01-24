@@ -1302,16 +1302,31 @@ WAIT1:		CP	(HL)
 ;
 ;OSWRCH - Write a character to console output.
 ;   Inputs: A = character.
-; Destroys: Nothing
+; Destroys: Nothing (might corrupt alt registers)
 ;
 OSWRCH:		PUSH	AF
+		push	bc
 		PUSH	DE
 		PUSH	HL
 		LD	E, A
+
+		push	iy
+		PUSH	DE
+		CALL	_mos_oswrite
+		POP	DE
+		pop	iy
+	ld	a, h
+	or	a
+	jr	nz, skip
+		ld	a, l
+		ld	e, l
+
 		CALL	TEST
 		CALL	EDPUT
+skip:
 		POP	HL
 		POP	DE
+		pop	bc
 		POP	AF
 		RET
 ;
