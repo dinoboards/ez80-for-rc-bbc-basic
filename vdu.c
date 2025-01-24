@@ -32,6 +32,7 @@ static uint8_t vdu_required_length = 0;
 typedef void (*mos_vdu_handler)();
 
 static void vdu_set_origin();
+static void vdu_mode();
 static void vdu_plot();
 static void vdu_gcol();
 static void vdu_clg();
@@ -44,6 +45,40 @@ static int16_t convert_y(int16_t logical_y) {
 }
 
 mos_vdu_handler current_fn = NULL;
+
+// VDU Code	Ctrl plus	Extra bytes	Meaning
+// 0	2 or @	0	Do nothing
+// 1	A	1	Send next character to printer only
+// 2	B	0	Enable printer
+// 3	C	0	Disable printer
+// 4	D	0	Write text at text cursor
+// 5	E	0	Write text at graphics cursor
+// 6	F	0	Enable VDU driver
+// 7	G	0	Generate bell sound
+// 8	H	0	Move cursor back one character
+// 9	I	0	Move cursor on one space
+// 10	J	0	Move cursor down one line
+// 11	K	0	Move cursor up one line
+// 12	L	0	Clear text viewport
+// 13	M	0	Move cursor to start of current line
+// 14	N	0	Turn on page mode
+// 15	O	0	Turn off page mode
+// 16	P	0	Clear graphics viewport
+// 17	Q	1	Define text colour
+// 18	R	2	Define graphics colour
+// 19	S	5	Define logical colour
+// 20	T	0	Restore default logical colours
+// 21	U	0	Disable VDU drivers
+// 22	V	1	Select screen mode
+// 23	W	9	Multi-purpose command
+// 24	X	8	Define graphics viewport
+// 25	Y	5	PLOT
+// 26	Z	0	Restore default viewports
+// 27	[	0	Does nothing
+// 28	\	4	Define text viewport
+// 29	]	4	Define graphics origin
+// 30	6 or ^	0	Home text cursor
+// 31	- or _	2	Move text cursor
 
 uint24_t mos_oswrite(uint8_t ch) {
   if (vdu_required_length) {
@@ -63,9 +98,15 @@ uint24_t mos_oswrite(uint8_t ch) {
     return -1;
   }
 
-  if (ch == 18) { // set mode, colour
+  if (ch == 18) { // gcol mode, colour
     current_fn          = vdu_gcol;
     vdu_required_length = 2;
+    return -1;
+  }
+
+  if (ch == 23) { // MODE
+    current_fn          = vdu_mode;
+    vdu_required_length = 1;
     return -1;
   }
 
@@ -130,6 +171,55 @@ static void vdu_clg() {
 static void vdu_gcol() {
   current_operation_mode = data[0];
   current_fg_colour      = data[1];
+}
+
+// VDU: 23 (1 byte)
+
+// MODE 0: 640x256 graphics, 80x32 characters, 2 colours, 20kB RAM
+// MODE 1: 320x256 graphics, 40x32 characters, 4 colours, 20kB RAM
+// MODE 2: 160x256 graphics, 20x32 characters, 8 colours, 20kB RAM
+// MODE 3: no graphics, 80x25 characters, 2 colours, 16kB RAM
+// MODE 4: 320x256 graphics, 40x32 characters, 2 colours, 10kB RAM
+// MODE 5: 160x256 graphics, 20x32 characters, 4 colours, 10kB RAM
+// MODE 6: no graphics, 40x25 characters, 2 colours, 8kB RAM
+// MODE 7: teletext, 40x25 characters, 8 colours, 1kB RAM
+
+// BBC MODE   | V9958 MODE
+//    xx      | MULTI-COLOR   64x48 16 colours                            8,9
+//    xx      | G1            32*8x24*8 16 colours only 256 patterns      10,11
+//    xx      | G3            32*8x24*8 16 colours 768 patterns           12
+//    xx      | G4 (212)      256x212 16 colours    => 2,5                13
+//    xx      | G4 (192)      256x192 16 colours                          15
+//    xx      | G5 (212)      512x212 4 colours     => 0,1,4              16
+//    xx      | G5 (192)      512x192 4 colours                           17
+//    xx      | G6 (212)      512x212 16 colours                          18
+//    xx      | G6 (192)      512x192 16 colours                          19
+//    xx      | G7 (212)      256x212 256 colours                         20
+//    xx      | G7 (192)      256x192 256 colours                         21
+
+extern void vdp_set_graphic_4();
+
+static void vdu_mode() {
+  switch (data[0]) {
+  case 0:
+  case 1:
+  case 4:
+    vdp_set_lines(212);
+    vdp_set_graphic_6();
+    printf("Set Graphic Mode 6");
+    break;
+
+  case 2:
+  case 5:
+    vdp_set_lines(212);
+    vdp_set_graphic_4();
+    printf("Set Graphic Mode 4");
+
+    break;
+
+  default:
+    vdu_not_implemented();
+  }
 }
 
 // VDU: 24 (5 bytes)

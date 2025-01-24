@@ -173,7 +173,7 @@ STAR_VDP_GRAPHIC_MODE:
 		LD	IX, .not_supported_yet
 		JR	Z, .apply_gr_mode
 		DEC	L
-		LD	IX, .not_supported_yet
+		LD	IX, _vdp_set_graphic_4
 		JR	Z, .apply_gr_mode
 		DEC	L
 		LD	IX, .not_supported_yet

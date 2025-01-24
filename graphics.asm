@@ -52,17 +52,10 @@ CLRSCN:			LD	A, 0Ch
 
 ; MODE n: Set video mode
 ;
-MODE:			PUSH	IX			; Get the system vars in IX
-			;MOSCALL	mos_sysvars		; Reset the semaphore
-			RES	4, (IX+sysvar_vpd_pflags)
-			CALL    EXPRI
+MODE:			CALL    EXPRI
 			EXX
-			VDU	16H			; Mode change
+			VDU	23			; Mode change
 			VDU	L
-			;MOSCALL	mos_sysvars
-; $$:			BIT	4, (IX+sysvar_vpd_pflags)
-; 			JR	Z, $B			; Wait for the result
-			POP	IX
 			JP	XEQ
 
 ; GET(x,y): Get the ASCII code of a character on screen
