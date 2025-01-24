@@ -30,8 +30,8 @@
 .endm
 
 .macro			VDU			val
-			; LD	A, val
-			; CALL	OSWRCH
+			LD	A, \val
+			CALL	OSWRCH
 .endm
 
 .macro			SET_GPIO		reg val

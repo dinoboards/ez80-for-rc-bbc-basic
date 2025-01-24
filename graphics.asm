@@ -79,10 +79,10 @@ GETSCHR:		INC	IY
 ;
 			PUSH	IX			; Get the system vars in IX
 			; MOSCALL	mos_sysvars		; Reset the semaphore
-			RES	1, (IX+sysvar_vpd_pflags)
+			; RES	1, (IX+sysvar_vpd_pflags)
 			VDU	23
 			VDU	0
-			VDU	vdp_scrchar
+			; VDU	vdp_scrchar
 			VDU	(VDU_BUFFER+0)
 			VDU	(VDU_BUFFER+1)
 			VDU	(VDU_BUFFER+2)
@@ -114,7 +114,7 @@ POINT:			CALL    EXPRI      		; Get X coordinate
 			RES	2, (IX+sysvar_vpd_pflags)
 			VDU	23
 			VDU	0
-			VDU	vdp_scrpixel
+			; VDU	vdp_scrpixel
 			VDU	(VDU_BUFFER+0)
 			VDU	(VDU_BUFFER+1)
 			VDU	(VDU_BUFFER+2)
