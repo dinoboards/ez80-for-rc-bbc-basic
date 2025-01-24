@@ -17,12 +17,12 @@ point_t origin = {0, 0};
 // static int16_t       viewport_bottom        = 0;
 // static int16_t       viewport_right         = 1279; // inclusive or exclusive????
 // static int16_t       viewport_top           = 1023;
-static point_t       current                = {0, 0};
-static uint8_t       current_fg_colour      = 0;
-static uint8_t       current_operation_mode = 0;
+static point_t current                = {0, 0};
+static uint8_t current_fg_colour      = 0;
+static uint8_t current_operation_mode = 0;
 
-static const int16_t scale_width            = 1280;
-static const int16_t scale_height           = 1024;
+static const int16_t scale_width  = 1280;
+static const int16_t scale_height = 1024;
 
 #define MAX_VDP_BYTES 16
 static uint8_t data[MAX_VDP_BYTES];
@@ -34,6 +34,7 @@ typedef void (*mos_vdu_handler)();
 static void vdu_set_origin();
 static void vdu_plot();
 static void vdu_gcol();
+static void vdu_clg();
 
 static int16_t convert_x(int16_t logical_x) { return vdp_get_screen_width() * (logical_x + origin.x) / scale_width; }
 
@@ -53,6 +54,11 @@ uint24_t mos_oswrite(uint8_t ch) {
       vdu_index           = 0;
       vdu_required_length = 0;
     }
+    return -1;
+  }
+
+  if (ch == 16) { // clg
+    vdu_clg();
     return -1;
   }
 
@@ -111,6 +117,12 @@ void vdu() {
 
     error_syntax_error();
   }
+}
+
+// VDU: 16 (0 bytes)
+static void vdu_clg() {
+  // for moment lets just erase to black
+  vdp_cmd_logical_move_vdp_to_vram(0, 0, vdp_get_screen_width(), vdp_get_screen_height(), 0, 0, 0);
 }
 
 // VDU: 18 (2 bytes)

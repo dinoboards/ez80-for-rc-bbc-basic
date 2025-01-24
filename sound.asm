@@ -83,7 +83,7 @@ SOUND0:			RES.LIL	3, (IX+sysvar_vpd_pflags)
 ;
 			VDU	23			; Send the sound command
 			VDU	0
-			VDU	vdp_audio
+			; VDU	vdp_audio
 			VDU	(VDU_BUFFER+0)		; 0: Channel
 			VDU	(VDU_BUFFER+1)		; 1: Waveform (0)
 			VDU	(VDU_BUFFER+2)		; 2: Volume (0-100)
