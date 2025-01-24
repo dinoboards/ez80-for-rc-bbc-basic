@@ -13,16 +13,16 @@
 
 point_t origin = {0, 0};
 
-// static int16_t       viewport_left          = 0;
-// static int16_t       viewport_bottom        = 0;
-// static int16_t       viewport_right         = 1279; // inclusive or exclusive????
-// static int16_t       viewport_top           = 1023;
+static const int16_t scale_width  = 1280;
+static const int16_t scale_height = 1024;
+
+static int16_t viewport_left          = 0;
+static int16_t viewport_bottom        = 0;
+static int16_t viewport_right         = scale_width - 1; // inclusive or exclusive????
+static int16_t viewport_top           = scale_height - 1;
 static point_t current                = {0, 0};
 static uint8_t current_fg_colour      = 0;
 static uint8_t current_operation_mode = 0;
-
-static const int16_t scale_width  = 1280;
-static const int16_t scale_height = 1024;
 
 #define MAX_VDP_BYTES 16
 static uint8_t data[MAX_VDP_BYTES];
@@ -39,7 +39,7 @@ static void vdu_clg();
 static int16_t convert_x(int16_t logical_x) { return vdp_get_screen_width() * (logical_x + origin.x) / scale_width; }
 
 static int16_t convert_y(int16_t logical_y) {
-  return vdp_get_screen_height() * (scale_height - (logical_y + origin.y)) / scale_height;
+  return (vdp_get_screen_height() * ((scale_height - 1) - (logical_y + origin.y))) / scale_height;
 }
 
 mos_vdu_handler current_fn = NULL;
@@ -144,6 +144,8 @@ modes:
 6	Draw a line, in the logical inverse colour, to the absolute coordinates specified by X and Y.
 7	Draw a line, in the current graphics background colour, to the absolute coordinates specified by X and Y.
 */
+static bool line_clip(line_t *l);
+
 static void vdu_plot() {
 
   switch (data[0]) { // mode
@@ -169,13 +171,19 @@ static void vdu_plot() {
     bptr_y[0]             = data[3];
     bptr_y[1]             = data[4];
 
-    printf("draw line from (%d, %d) to (%d, %d)", convert_x(previous_current.x), convert_y(previous_current.y),
-           convert_x(current.x), convert_y(current.y));
-
     // assume mode 7 and convert 6 bit RGB to G(3)R(3)B(2)
 
-    vdp_draw_line(convert_x(previous_current.x), convert_y(previous_current.y), convert_x(current.x), convert_y(current.y),
-                  current_fg_colour, current_operation_mode);
+    line_t  l          = {previous_current, current};
+    uint8_t intersects = line_clip(&l);
+
+    if (intersects) {
+      printf("clipped: (%d, %d)-(%d,%d)\r\n", l.a.x, l.a.y, l.b.x, l.b.y);
+      printf("draw line from (%d, %d) to (%d, %d)", convert_x(l.a.x), convert_y(l.a.y), convert_x(l.b.x), convert_y(l.b.y));
+
+      vdp_draw_line(convert_x(l.a.x), convert_y(l.a.y), convert_x(l.b.x), convert_y(l.b.y), current_fg_colour,
+                    current_operation_mode);
+    } else
+      printf("line outside of viewport\r\n");
 
     return;
   }
@@ -195,4 +203,53 @@ static void vdu_set_origin() {
   bptr_y[0]             = data[2];
   bptr_y[1]             = data[3];
   current_fn            = NULL;
+}
+
+/* line clipping to view port */
+
+static uint8_t bit_code(point_t p);
+static point_t intersect(line_t l, uint8_t edge);
+
+static bool line_clip(line_t *l) {
+
+  const uint8_t codeA = bit_code(l->a);
+  const uint8_t codeB = bit_code(l->b);
+
+  if (!(codeA | codeB)) // both points within viewport
+    return true;
+
+  if (codeA & codeB) // line does not intersect viewport
+    return false;
+
+  if (codeA) // a outside, intersect with clip edge
+    l->a = intersect(*l, codeA);
+
+  if (codeB) // b outside, intersect with clip edge
+    l->b = intersect(*l, codeB);
+
+  return true;
+}
+
+static point_t intersect(line_t l, uint8_t edge) {
+  return edge & 8   ? (point_t){l.a.x + (l.b.x - l.a.x) * (viewport_top - l.a.y) / (l.b.y - l.a.y), viewport_top}
+         : edge & 4 ? (point_t){l.a.x + (l.b.x - l.a.x) * (viewport_bottom - l.a.y) / (l.b.y - l.a.y), viewport_bottom}
+         : edge & 2 ? (point_t){viewport_right, l.a.y + (l.b.y - l.a.y) * (viewport_right - l.a.x) / (l.b.x - l.a.x)}
+         : edge & 1 ? (point_t){viewport_left, l.a.y + (l.b.y - l.a.y) * (viewport_left - l.a.x) / (l.b.x - l.a.x)}
+                    : (point_t){-1, -1}; // will this happen?
+}
+
+static uint8_t bit_code(point_t p) {
+  uint8_t code = 0;
+
+  if (p.x < viewport_left)
+    code |= 1; // left
+  else if (p.x > viewport_right)
+    code |= 2; // right
+
+  if (p.y < viewport_bottom)
+    code |= 4; // bottom
+  else if (p.y > viewport_top)
+    code |= 8; // top
+
+  return code;
 }
