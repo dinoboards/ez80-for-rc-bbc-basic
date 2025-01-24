@@ -164,6 +164,7 @@ void vdu() {
 // VDU: 16 (0 bytes)
 static void vdu_clg() {
   // for moment lets just erase to black
+  vdp_cmd_wait_completion();
   vdp_cmd_logical_move_vdp_to_vram(0, 0, vdp_get_screen_width(), vdp_get_screen_height(), 0, 0, 0);
 }
 
@@ -309,6 +310,7 @@ static void vdu_plot() {
     bptr_y[0]             = data[3];
     bptr_y[1]             = data[4];
 
+    vdp_cmd_wait_completion();
     vdp_cmd_pset(convert_x(current.x), convert_y(current.y), current_fg_colour, current_operation_mode);
 
     return;
