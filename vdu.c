@@ -35,6 +35,7 @@ static void vdu_set_origin();
 static void vdu_plot();
 static void vdu_gcol();
 static void vdu_clg();
+static bool line_clip(line_t *l);
 
 static int16_t convert_x(int16_t logical_x) { return vdp_get_screen_width() * (logical_x + origin.x) / scale_width; }
 
@@ -143,8 +144,29 @@ modes:
 5	Draw a line, in the current graphics foreground colour, to the absolute coordinates specified by X and Y.
 6	Draw a line, in the logical inverse colour, to the absolute coordinates specified by X and Y.
 7	Draw a line, in the current graphics background colour, to the absolute coordinates specified by X and Y.
+8-63	Enhanced line drawing modes.
+64-71	Plot a single point.
+72-79	Horizontal line fill to non-background.
+80-87	Plot and fill a triangle.
+88-95	Horizontal line fill to background right.
+96-103	Plot and fill an axis-aligned rectangle.
+104-111	Horizontal line fill to foreground.
+112-119	Plot and fill a parallelogram.
+120-127	Horizontal line fill to non-foreground right.
+128-135	Flood-fill to non-background.
+136-143	Flood-fill to foreground.
+144-151	Draw a circle.
+152-159	Plot and fill a disc.
+160-167	Draw a circular arc.
+168-175	Plot and fill a segment.
+176-183	Plot and fill a sector.
+185/189	Move a rectangular block.
+187/191	Copy a rectangular block.
+192-199	Draw an outline axis-aligned ellipse.
+200-207  	Plot and fill a solid axis-aligned ellipse.
+249/253	Swap a rectangular block.
+
 */
-static bool line_clip(line_t *l);
 
 static void vdu_plot() {
 
@@ -184,6 +206,20 @@ static void vdu_plot() {
                     current_operation_mode);
     } else
       printf("line outside of viewport\r\n");
+
+    return;
+  }
+
+  case 69: {
+    uint8_t *const bptr_x = (uint8_t *)&current.x;
+    bptr_x[0]             = data[1];
+    bptr_x[1]             = data[2];
+
+    uint8_t *const bptr_y = (uint8_t *)&current.y;
+    bptr_y[0]             = data[3];
+    bptr_y[1]             = data[4];
+
+    vdp_cmd_pset(convert_x(current.x), convert_y(current.y), current_fg_colour, current_operation_mode);
 
     return;
   }
