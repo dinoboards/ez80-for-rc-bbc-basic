@@ -178,7 +178,7 @@ static void vdu_gcol() {
 
 // MODE 0: 640x256 graphics, 80x32 characters, 2 colours, 20kB RAM
 // MODE 1: 320x256 graphics, 40x32 characters, 4 colours, 20kB RAM
-// MODE 2: 160x256 graphics, 20x32 characters, 8 colours, 20kB RAM
+// MODE 2: 160x256 graphics, 20x32 characters, 16 colours, 20kB RAM
 // MODE 3: no graphics, 80x25 characters, 2 colours, 16kB RAM
 // MODE 4: 320x256 graphics, 40x32 characters, 2 colours, 10kB RAM
 // MODE 5: 160x256 graphics, 20x32 characters, 4 colours, 10kB RAM
@@ -200,22 +200,45 @@ static void vdu_gcol() {
 
 extern void vdp_set_graphic_4();
 
+#define BLACK                                                                                                                      \
+  (RGB) { 0, 0, 0 }
+#define WHITE                                                                                                                      \
+  (RGB) { 255, 255, 255 }
+#define RED                                                                                                                        \
+  (RGB) { 255, 0, 0 }
+#define YELLOW                                                                                                                     \
+  (RGB) { 255, 255, 0 }
+
+RGB default_mode_2_colour_palette[16] = {BLACK, WHITE};
+RGB default_mode_4_colour_palette[16] = {BLACK, RED, YELLOW, WHITE};
+
 static void vdu_mode() {
+  vdp_set_lines(212);
+
   switch (data[0]) {
   case 0:
+    vdp_set_palette(default_mode_2_colour_palette);
+    vdp_set_graphic_5();
+    break;
+
   case 1:
+    vdp_set_palette(default_mode_4_colour_palette);
+    vdp_set_graphic_5();
+    break;
+
   case 4:
-    vdp_set_lines(212);
-    vdp_set_graphic_6();
-    printf("Set Graphic Mode 6");
+    vdp_set_palette(default_mode_2_colour_palette);
+    vdp_set_graphic_5();
     break;
 
   case 2:
-  case 5:
-    vdp_set_lines(212);
+    // 16 colours
     vdp_set_graphic_4();
-    printf("Set Graphic Mode 4");
+    break;
 
+  case 5:
+    vdp_set_palette(default_mode_4_colour_palette);
+    vdp_set_graphic_4();
     break;
 
   default:
@@ -291,7 +314,8 @@ static void vdu_plot() {
 
     if (intersects) {
       printf("clipped: (%d, %d)-(%d,%d)\r\n", l.a.x, l.a.y, l.b.x, l.b.y);
-      printf("draw line from (%d, %d) to (%d, %d)", convert_x(l.a.x), convert_y(l.a.y), convert_x(l.b.x), convert_y(l.b.y));
+      printf("draw line from (%d, %d) to (%d, %d) in (%d, %d)", convert_x(l.a.x), convert_y(l.a.y), convert_x(l.b.x),
+             convert_y(l.b.y), current_fg_colour, current_operation_mode);
 
       vdp_draw_line(convert_x(l.a.x), convert_y(l.a.y), convert_x(l.b.x), convert_y(l.b.y), current_fg_colour,
                     current_operation_mode);
