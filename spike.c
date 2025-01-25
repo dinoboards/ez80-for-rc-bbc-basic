@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <v99x8.h>
+
 void debug() {
   printf("HIMEM: %p\r\n", HIMEM);
   printf("LOMEM: %p\r\n", LOMEM);
@@ -61,12 +63,40 @@ void log_info(const char *name,
     printf("LOG: " #name ".  AF:%X, BC: %X, DE: %X, HL: %X, ix: %X\r\n", af, bc, de, hl, ix);                                      \
   }
 
-ABORT_X(read)
 ABORT_X(exists)
-ABORT_X(dir1)
 
-LOG_X(incsec)
-LOG_X(read)
-LOG_X(read1)
-LOG_X(read2)
-LOG_X(read3)
+extern uint8_t sysfont[];
+
+// void star_zzz() {
+//   printf("ready\r\n");
+
+//   int xoffset = 0;
+//   int yoffset = 0;
+//   for (int c = 0; c < 768; c+=8) {
+//     for (int y = 0; y < 8; y++) {
+//       for (int x = 0; x < 7; x++) {
+//         if (x==3) {
+//           x++;
+//           // continue;
+//         }
+//         else
+//           pix_on = (sysfont[c + y] & (1 << (7 - x)))
+
+//         if  {
+//           printf("X");
+//           vdp_cmd_wait_completion();
+//           vdp_cmd_pset(x + xoffset, y + yoffset, 4, 0);
+//         } else
+//           printf(" ");
+//       }
+//       printf("\r\n----\r\n");
+//     }
+
+//     xoffset += 16;
+//     if (xoffset >= 256) {
+//       xoffset = 0;
+//       yoffset += 16;
+//     }
+//     printf("-----------------\r\n");
+//   }
+// }

@@ -51,7 +51,7 @@ _comma:
 	pop	ix
 	ret
 
-; extern uint8_t nxt(uint8_t** iy);
+; extern uint8_t nxt();
 
 	global	_nxt
 

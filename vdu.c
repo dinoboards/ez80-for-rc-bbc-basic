@@ -72,9 +72,12 @@ static int16_t viewport_left          = 0;
 static int16_t viewport_bottom        = 0;
 static int16_t viewport_right         = scale_width - 1; // inclusive or exclusive????
 static int16_t viewport_top           = scale_height - 1;
-static point_t current                = {0, 0};
+static point_t current_gpos           = {0, 0};
 static uint8_t current_fg_colour      = 0;
 static uint8_t current_operation_mode = 0;
+static uint8_t current_display_mode   = 255;
+static point_t current_tpos = {0, 0};
+extern uint8_t sysfont[];
 
 #define MAX_VDP_BYTES 16
 static uint8_t data[MAX_VDP_BYTES];
@@ -87,6 +90,7 @@ static void vdu_set_origin();
 static void vdu_mode();
 static void vdu_plot();
 static void vdu_gcol();
+static void vdu_cls();
 static void vdu_clg();
 static void vdu_colour();
 static bool line_clip(line_t *l);
@@ -96,6 +100,8 @@ static int16_t convert_x(int16_t logical_x) { return vdp_get_screen_width() * (l
 static int16_t convert_y(int16_t logical_y) {
   return (vdp_get_screen_height() * ((scale_height - 1) - (logical_y + origin.y))) / scale_height;
 }
+
+static void graphic_print_char(uint8_t ch);
 
 mos_vdu_handler current_fn = NULL;
 
@@ -146,6 +152,14 @@ uint24_t mos_oswrite(uint8_t ch) {
     return -1;
   }
 
+  if (ch == 12) { // cls
+    if (current_display_mode == 255)
+      return 0x0C; // send formfeed to serial
+
+    vdu_cls();
+    return -1;
+  }
+
   if (ch == 16) { // clg
     vdu_clg();
     return -1;
@@ -181,7 +195,15 @@ uint24_t mos_oswrite(uint8_t ch) {
     return -1;
   }
 
+  if (current_display_mode == 255)
+    return ch;
+
+  graphic_print_char(ch);
+  // print to graphic screen at current text post
+
+  // for the time, lets dual output to serial and graphic
   return ch;
+  // return -1;
 }
 
 void vdu() {
@@ -225,11 +247,35 @@ void vdu() {
   }
 }
 
+/*
+// VDU 12
+VDU 12 clears either the current text viewport (by default or after a VDU 4
+command) or the current graphics viewport (after a VDU 5 command) to the current
+text or graphics background colour respectively. In addition the text or graphics
+cursor is moved to its home position (see VDU 3
+*/
+
+static void vdu_cls() {
+  // for moment lets just erase to black
+  // TODO constrain to text view port
+  // apply correct back colour
+  vdp_cmd_wait_completion();
+  vdp_cmd_logical_move_vdp_to_vram(0, 0, vdp_get_screen_width(), vdp_get_screen_height(), 0, 0, 0);
+
+  current_tpos.x = 0;
+  current_tpos.y = 0;
+}
+
 // VDU: 16 (0 bytes)
 static void vdu_clg() {
   // for moment lets just erase to black
+  // TODO constrain to graphic view port
+  // apply correct back colour
   vdp_cmd_wait_completion();
   vdp_cmd_logical_move_vdp_to_vram(0, 0, vdp_get_screen_width(), vdp_get_screen_height(), 0, 0, 0);
+
+  current_gpos.x = 0;
+  current_gpos.y = 0;
 }
 
 // VDU: 18 (2 bytes)
@@ -284,10 +330,13 @@ static void vdu_colour() {
 //    xx      | G7 (212)      256x212 256 colours                         20
 //    xx      | G7 (192)      256x192 256 colours                         21
 
+//    xx      | xx - serial I/O  MODE 255 (-1)
+
 extern void vdp_set_graphic_4();
 
 static void vdu_mode() {
   vdp_set_lines(212);
+  current_display_mode = data[0];
 
   switch (data[0]) {
   case 0:
@@ -313,6 +362,9 @@ static void vdu_mode() {
   case 5:
     vdp_set_palette(default_4_colour_palette);
     vdp_set_graphic_4();
+    break;
+
+  case 255:
     break;
 
   default:
@@ -360,30 +412,30 @@ static void vdu_plot() {
 
   switch (data[0]) { // mode
   case 4: {
-    uint8_t *const bptr_x = (uint8_t *)&current.x;
+    uint8_t *const bptr_x = (uint8_t *)&current_gpos.x;
     bptr_x[0]             = data[1];
     bptr_x[1]             = data[2];
 
-    uint8_t *const bptr_y = (uint8_t *)&current.y;
+    uint8_t *const bptr_y = (uint8_t *)&current_gpos.y;
     bptr_y[0]             = data[3];
     bptr_y[1]             = data[4];
     return;
   }
 
   case 5: {
-    point_t previous_current = current;
+    point_t previous_current = current_gpos;
 
-    uint8_t *const bptr_x = (uint8_t *)&current.x;
+    uint8_t *const bptr_x = (uint8_t *)&current_gpos.x;
     bptr_x[0]             = data[1];
     bptr_x[1]             = data[2];
 
-    uint8_t *const bptr_y = (uint8_t *)&current.y;
+    uint8_t *const bptr_y = (uint8_t *)&current_gpos.y;
     bptr_y[0]             = data[3];
     bptr_y[1]             = data[4];
 
     // assume mode 7 and convert 6 bit RGB to G(3)R(3)B(2)
 
-    line_t  l          = {previous_current, current};
+    line_t  l          = {previous_current, current_gpos};
     uint8_t intersects = line_clip(&l);
 
     if (intersects) {
@@ -400,16 +452,16 @@ static void vdu_plot() {
   }
 
   case 69: {
-    uint8_t *const bptr_x = (uint8_t *)&current.x;
+    uint8_t *const bptr_x = (uint8_t *)&current_gpos.x;
     bptr_x[0]             = data[1];
     bptr_x[1]             = data[2];
 
-    uint8_t *const bptr_y = (uint8_t *)&current.y;
+    uint8_t *const bptr_y = (uint8_t *)&current_gpos.y;
     bptr_y[0]             = data[3];
     bptr_y[1]             = data[4];
 
     vdp_cmd_wait_completion();
-    vdp_cmd_pset(convert_x(current.x), convert_y(current.y), current_fg_colour, current_operation_mode);
+    vdp_cmd_pset(convert_x(current_gpos.x), convert_y(current_gpos.y), current_fg_colour, current_operation_mode);
 
     return;
   }
@@ -478,4 +530,72 @@ static uint8_t bit_code(point_t p) {
     code |= 8; // top
 
   return code;
+}
+
+static void vdu_cr() {
+  current_tpos.x = 0;
+}
+
+static void vdu_lf() {
+  current_tpos.y++;
+
+  int16_t gpos_y = current_tpos.y * 8;
+
+  if (gpos_y > (int16_t)vdp_get_screen_width() - 7) {
+    printf("todo: need to scroll for text\r\n");
+    current_tpos.y = 0;
+  }
+}
+
+static void vdu_bs() {
+  printf("XX");
+  if (current_tpos.x != 0)
+    current_tpos.x--;
+}
+
+static void graphic_print_char(uint8_t ch) {
+
+  // calculate real physcal location to begin printing;
+  const point_t gpos = (point_t){current_tpos.x * 8, current_tpos.y * 8};
+
+  if (ch == '\r') {
+    vdu_cr();
+    return;
+  }
+
+  if (ch == 8) {
+    vdu_bs();
+    return;
+  }
+
+  if (ch == '\n') {
+    vdu_lf();
+    return;
+  }
+
+  if ((ch < ' ') || (ch >= 127)) {
+    // printf("TODO: process char 0x'%X'\r\n", ch);
+    return;
+  }
+
+  uint16_t font_index = (ch - ' ') * 8;
+  uint8_t *p          = &sysfont[font_index];
+
+  for (int y = 0; y < 8; y++) {
+    uint8_t r = *p++;
+    for (int x = 0; x < 7; x++) {
+      if (r & (1 << (7 - x))) {
+        vdp_cmd_wait_completion();
+        vdp_cmd_pset(x + gpos.x, y + gpos.y, 1, 0);
+      }
+    }
+  }
+
+  current_tpos.x++;
+  // printf("+(%X)", ch);
+
+  if (gpos.x+8 >= (int16_t)vdp_get_screen_width()) {
+    vdu_cr();
+    vdu_lf();
+  }
 }
