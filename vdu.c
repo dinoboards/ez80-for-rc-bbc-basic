@@ -13,6 +13,58 @@
 
 point_t origin = {0, 0};
 
+#define RGB_BLACK                                                                                                                  \
+  (RGB) { 0, 0, 0 }
+#define RGB_WHITE                                                                                                                  \
+  (RGB) { 7, 7, 7 }
+#define RGB_RED                                                                                                                    \
+  (RGB) { 7, 0, 0 }
+#define RGB_GREEN                                                                                                                  \
+  (RGB) { 0, 7, 0 }
+#define RGB_BLUE                                                                                                                   \
+  (RGB) { 0, 0, 7 }
+#define RGB_YELLOW                                                                                                                 \
+  (RGB) { 7, 7, 0 }
+#define RGB_MAGENTA                                                                                                                \
+  (RGB) { 7, 0, 7 }
+#define RGB_CYAN                                                                                                                   \
+  (RGB) { 0, 7, 7 }
+#define RGB_FLASHING_BLACK_WHITE                                                                                                   \
+  (RGB) { 3, 3, 3 }
+#define RGB_FLASHING_RED_CYAN                                                                                                      \
+  (RGB) { 7, 3, 3 }
+#define RGB_FLASHING_GREEN_MAGENTA                                                                                                 \
+  (RGB) { 3, 7, 3 }
+#define RGB_FLASHING_YELLOW_BLUE                                                                                                   \
+  (RGB) { 3, 3, 7 }
+#define RGB_FLASHING_BLUE_YELLOW                                                                                                   \
+  (RGB) { 7, 7, 3 }
+#define RGB_FLASHING_MAGENTA_GREEN                                                                                                 \
+  (RGB) { 7, 3, 7 }
+#define RGB_FLASHING_CYAN_RED                                                                                                      \
+  (RGB) { 3, 7, 7 }
+#define RGB_FLASHING_WHITE_BLACK                                                                                                   \
+  (RGB) { 3, 3, 3 }
+
+static RGB default_2_colour_palette[16]  = {RGB_BLACK, RGB_WHITE};
+static RGB default_4_colour_palette[16]  = {RGB_BLACK, RGB_RED, RGB_YELLOW, RGB_WHITE};
+static RGB default_16_colour_palette[16] = {RGB_BLACK,
+                                            RGB_RED,
+                                            RGB_GREEN,
+                                            RGB_YELLOW,
+                                            RGB_BLUE,
+                                            RGB_MAGENTA,
+                                            RGB_CYAN,
+                                            RGB_WHITE,
+                                            RGB_FLASHING_BLACK_WHITE,
+                                            RGB_FLASHING_RED_CYAN,
+                                            RGB_FLASHING_GREEN_MAGENTA,
+                                            RGB_FLASHING_YELLOW_BLUE,
+                                            RGB_FLASHING_BLUE_YELLOW,
+                                            RGB_FLASHING_MAGENTA_GREEN,
+                                            RGB_FLASHING_CYAN_RED,
+                                            RGB_FLASHING_WHITE_BLACK};
+
 static const int16_t scale_width  = 1280;
 static const int16_t scale_height = 1024;
 
@@ -36,6 +88,7 @@ static void vdu_mode();
 static void vdu_plot();
 static void vdu_gcol();
 static void vdu_clg();
+static void vdu_colour();
 static bool line_clip(line_t *l);
 
 static int16_t convert_x(int16_t logical_x) { return vdp_get_screen_width() * (logical_x + origin.x) / scale_width; }
@@ -104,6 +157,12 @@ uint24_t mos_oswrite(uint8_t ch) {
     return -1;
   }
 
+  if (ch == 19) { // colour
+    current_fn          = vdu_colour;
+    vdu_required_length = 5;
+    return -1;
+  }
+
   if (ch == 23) { // MODE
     current_fn          = vdu_mode;
     vdu_required_length = 1;
@@ -157,6 +216,11 @@ void vdu() {
       return;
     }
 
+    if (separator == ':') {
+      oswrite(value & 255);
+      return;
+    }
+
     error_syntax_error();
   }
 }
@@ -174,6 +238,28 @@ static void vdu_gcol() {
   current_fg_colour      = data[1];
 }
 
+// VDU 19,l,p,r,g,b
+// VDU 19 is used to define the physical colours associated with the logical colour l.
+// If p <= 15 & p >= 0, r, g and b are ignored, and one of the standard colour settings is
+// used. This is equivalent to COLOUR l,p.
+// If p = 16, the palette is set up to contain the levels of red, green and blue dictated
+// by r, g and b. This is equivalent to COLOUR l,r,g,b.
+// If p = 24, the border is given colour components according to r, g and b.
+// If p = 25, the mouse logical colour l is given colour components according to r, g
+// and b. This is equivalent to MOUSE COLOUR l,r,g,b.
+
+static void vdu_colour() {
+  const uint8_t l = data[0];
+  const uint8_t p = data[1];
+
+  if (p <= 15 && p >= 0) {
+    const RGB physical_colour = default_16_colour_palette[p];
+
+    vdp_reg_write(16, l & 15);
+    vdp_out_pal((physical_colour.red & 7) * 16 + (physical_colour.blue & 7));
+    vdp_out_pal(physical_colour.green & 7);
+  }
+}
 // VDU: 23 (1 byte)
 
 // MODE 0: 640x256 graphics, 80x32 characters, 2 colours, 20kB RAM
@@ -200,44 +286,32 @@ static void vdu_gcol() {
 
 extern void vdp_set_graphic_4();
 
-#define BLACK                                                                                                                      \
-  (RGB) { 0, 0, 0 }
-#define WHITE                                                                                                                      \
-  (RGB) { 255, 255, 255 }
-#define RED                                                                                                                        \
-  (RGB) { 255, 0, 0 }
-#define YELLOW                                                                                                                     \
-  (RGB) { 255, 255, 0 }
-
-RGB default_mode_2_colour_palette[16] = {BLACK, WHITE};
-RGB default_mode_4_colour_palette[16] = {BLACK, RED, YELLOW, WHITE};
-
 static void vdu_mode() {
   vdp_set_lines(212);
 
   switch (data[0]) {
   case 0:
-    vdp_set_palette(default_mode_2_colour_palette);
+    vdp_set_palette(default_2_colour_palette);
     vdp_set_graphic_5();
     break;
 
   case 1:
-    vdp_set_palette(default_mode_4_colour_palette);
+    vdp_set_palette(default_4_colour_palette);
     vdp_set_graphic_5();
     break;
 
   case 4:
-    vdp_set_palette(default_mode_2_colour_palette);
+    vdp_set_palette(default_2_colour_palette);
     vdp_set_graphic_5();
     break;
 
   case 2:
-    // 16 colours
+    vdp_set_palette(default_16_colour_palette);
     vdp_set_graphic_4();
     break;
 
   case 5:
-    vdp_set_palette(default_mode_4_colour_palette);
+    vdp_set_palette(default_4_colour_palette);
     vdp_set_graphic_4();
     break;
 
