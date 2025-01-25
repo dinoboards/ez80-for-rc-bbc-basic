@@ -1323,7 +1323,7 @@ IFNOT:			LD      A,(IY)
 
 ; CLS
 ;
-CLS:		CALL    CLRSCN
+CLS:			VDU	12
 			XOR     A
 			LD      (COUNT),A
 			JP      XEQ

@@ -46,9 +46,9 @@ CLG:			VDU	10h
 			JP	XEQ
 
 ; CLS: clears the text area
-;
-CLRSCN:			LD	A, 0Ch
-			JP	OSWRCH
+; ;
+; CLRSCN:			LD	A, 0Ch
+; 			JP	OSWRCH
 
 ; MODE n: Set video mode
 ;
