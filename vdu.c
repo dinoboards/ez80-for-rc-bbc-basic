@@ -541,7 +541,7 @@ static void vdu_lf() {
 
   int16_t gpos_y = current_tpos.y * 8;
 
-  if (gpos_y > (int16_t)vdp_get_screen_width() - 7) {
+  if (gpos_y > (int16_t)vdp_get_screen_height() - 7) {
     printf("todo: need to scroll for text\r\n");
     current_tpos.y = 0;
   }
