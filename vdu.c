@@ -94,6 +94,7 @@ static void vdu_cls();
 static void vdu_clg();
 static void vdu_colour();
 static bool line_clip(line_t *l);
+static void mode_4_preload_fonts();
 
 static int16_t convert_x(int16_t logical_x) { return vdp_get_screen_width() * (logical_x + origin.x) / scale_width; }
 
@@ -357,6 +358,7 @@ static void vdu_mode() {
   case 2:
     vdp_set_palette(default_16_colour_palette);
     vdp_set_graphic_4();
+    mode_4_preload_fonts();
     break;
 
   case 5:
@@ -550,10 +552,50 @@ static void vdu_bs() {
     current_tpos.x--;
 }
 
+static void mode_4_preload_fonts() {
+
+  // erase all of the page first, so we only need to write the on dots
+
+  vdp_cmd_wait_completion();
+  vdp_cmd_logical_move_vdp_to_vram(0, 256, vdp_get_screen_width(), vdp_get_screen_height(), 0, 0, 0);
+
+  // vdp_cmd_wait_completion();
+  // vdp_cmd_logical_move_vram_to_vram(0,256, 0,0, 32, 32, 0, 0);
+
+  uint8_t *p = sysfont;
+
+  const uint8_t starting_ch = ' ';
+  uint16_t      gpos_x      = (starting_ch % 32) * 8;
+  uint16_t      gpos_y      = 256 + (starting_ch / 32) * 8;
+
+  for (int ch_row = ' '; ch_row < 127; ch_row += 32) {
+    for (int ch_col = 0; ch_col < 32; ch_col++) {
+      for (int y = 0; y < 8; y++) {
+        uint8_t r = *p++;
+        for (int x = 0; x < 8; x++) {
+          const bool pixel_on = (r & (1 << (7 - x)));
+          if (pixel_on) {
+            vdp_cmd_wait_completion();
+            vdp_cmd_pset(gpos_x, gpos_y, 1, 0);
+          }
+          gpos_x++;
+        }
+
+        gpos_x -= 8;
+        gpos_y++;
+      }
+
+      gpos_x += 8;
+      gpos_y -= 8;
+    }
+    gpos_x = 0;
+    gpos_y += 8;
+  }
+}
+
 static void graphic_print_char(uint8_t ch) {
 
   // calculate real physical location to begin printing;
-  const point_t gpos = (point_t){current_tpos.x * 8, current_tpos.y * 8};
 
   if (ch == '\r') {
     vdu_cr();
@@ -575,98 +617,14 @@ static void graphic_print_char(uint8_t ch) {
     return;
   }
 
-  uint16_t font_index = (ch - ' ') * 8;
-  uint8_t *p          = &sysfont[font_index];
+  const point_t gpos = (point_t){current_tpos.x * 8, current_tpos.y * 8};
 
-  uint16_t gpos_y = gpos.y;
+  // calculate x and y of 'ch'
+  const uint16_t from_x = (ch % 32) * 8;
+  const uint16_t from_y = 256 + (ch / 32) * 8;
 
   vdp_cmd_wait_completion();
-
-  for (int y = 0; y < 8; y++, gpos_y++) {
-    uint8_t  r = *p++;
-    uint8_t  col;
-    uint16_t gpos_x = gpos.x;
-
-    col = r & 0x80 ? 1 : 0;
-    vdp_cmd_pset(gpos_x, gpos_y, col, 0);
-
-    col = r & 0x40 ? 1 : 0;
-    gpos_x++;
-    VDP_ADDR = gpos_x & 255;
-    VDP_ADDR = 0x80 | 36; // low x
-    VDP_ADDR = gpos_x >> 8;
-    VDP_ADDR = 0x80 | 37; // high x
-    VDP_ADDR = col;
-    VDP_ADDR = 0x80 | 44; // colour
-    VDP_ADDR = CMD_PSET;
-    VDP_ADDR = 0x80 | 46; // command
-
-    col = r & 0x20 ? 1 : 0;
-    gpos_x++;
-    VDP_ADDR = gpos_x & 255;
-    VDP_ADDR = 0x80 | 36; // low x
-    VDP_ADDR = gpos_x >> 8;
-    VDP_ADDR = 0x80 | 37; // high x
-    VDP_ADDR = col;
-    VDP_ADDR = 0x80 | 44; // colour
-    VDP_ADDR = CMD_PSET;
-    VDP_ADDR = 0x80 | 46; // command
-
-    col = r & 0x10 ? 1 : 0;
-    gpos_x++;
-    VDP_ADDR = gpos_x & 255;
-    VDP_ADDR = 0x80 | 36; // low x
-    VDP_ADDR = gpos_x >> 8;
-    VDP_ADDR = 0x80 | 37; // high x
-    VDP_ADDR = col;
-    VDP_ADDR = 0x80 | 44; // colour
-    VDP_ADDR = CMD_PSET;
-    VDP_ADDR = 0x80 | 46; // command
-
-    col = r & 0x08 ? 1 : 0;
-    gpos_x++;
-    VDP_ADDR = gpos_x & 255;
-    VDP_ADDR = 0x80 | 36; // low x
-    VDP_ADDR = gpos_x >> 8;
-    VDP_ADDR = 0x80 | 37; // high x
-    VDP_ADDR = col;
-    VDP_ADDR = 0x80 | 44; // colour
-    VDP_ADDR = CMD_PSET;
-    VDP_ADDR = 0x80 | 46; // command
-
-    col = r & 0x04 ? 1 : 0;
-    gpos_x++;
-    VDP_ADDR = gpos_x & 255;
-    VDP_ADDR = 0x80 | 36; // low x
-    VDP_ADDR = gpos_x >> 8;
-    VDP_ADDR = 0x80 | 37; // high x
-    VDP_ADDR = col;
-    VDP_ADDR = 0x80 | 44; // colour
-    VDP_ADDR = CMD_PSET;
-    VDP_ADDR = 0x80 | 46; // command
-
-    col = r & 0x02 ? 1 : 0;
-    gpos_x++;
-    VDP_ADDR = gpos_x & 255;
-    VDP_ADDR = 0x80 | 36; // low x
-    VDP_ADDR = gpos_x >> 8;
-    VDP_ADDR = 0x80 | 37; // high x
-    VDP_ADDR = col;
-    VDP_ADDR = 0x80 | 44; // colour
-    VDP_ADDR = CMD_PSET;
-    VDP_ADDR = 0x80 | 46; // command
-
-    col = r & 0x01 ? 1 : 0;
-    gpos_x++;
-    VDP_ADDR = gpos_x & 255;
-    VDP_ADDR = 0x80 | 36; // low x
-    VDP_ADDR = gpos_x >> 8;
-    VDP_ADDR = 0x80 | 37; // high x
-    VDP_ADDR = col;
-    VDP_ADDR = 0x80 | 44; // colour
-    VDP_ADDR = CMD_PSET;
-    VDP_ADDR = 0x80 | 46; // command
-  }
+  vdp_cmd_logical_move_vram_to_vram(from_x, from_y, gpos.x, gpos.y, 8, 8, 0, 0);
 
   current_tpos.x++;
 
