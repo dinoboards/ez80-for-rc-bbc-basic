@@ -548,7 +548,6 @@ static void vdu_lf() {
 }
 
 static void vdu_bs() {
-  printf("XX");
   if (current_tpos.x != 0)
     current_tpos.x--;
 }
