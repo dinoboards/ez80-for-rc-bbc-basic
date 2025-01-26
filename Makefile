@@ -11,7 +11,7 @@ FILES := main.asm ram.asm exec.asm eval.asm interrupts.asm misc.asm sound.asm gr
 .PHONY: BBCBASIC.EXE
 BBCBASIC.EXE:
 	@mkdir -p ./bin
-	@ez80-cc --lib v99x8-standard --mem-model 2MB --output-dir  ./bin --optimise size BBCBASIC.EXE $(FILES)
+	@ez80-cc --lib v99x8-hdmi --mem-model 2MB --output-dir  ./bin --optimise size BBCBASIC.EXE $(FILES)
 
 .PHONY: format
 format: SHELL:=/bin/bash
