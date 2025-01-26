@@ -54,7 +54,7 @@ CLG:			VDU	10h
 ;
 MODE:			CALL    EXPRI
 			EXX
-			VDU	23			; Mode change
+			VDU	22			; Mode change
 			VDU	L
 			JP	XEQ
 
@@ -134,7 +134,7 @@ COLOUR:			CALL	EXPRI			; The colour / mode
 			CP	','
 			JR	Z, COLOUR_1		; Yes, so we're doing a palette change next
 ;
-			VDU	11h			; Just set the colour
+			VDU	17			; Just set the colour
 			VDU	(VDU_BUFFER+0)
 			JP	XEQ
 ;
