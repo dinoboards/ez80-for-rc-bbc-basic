@@ -1,0 +1,45 @@
+name: ez80-for-rc
+
+on:
+  push:
+    branches:
+      - '**'
+    tags:
+      - '**'
+
+jobs:
+  apps:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Apply REVISION_VERSION
+        run: |
+          VERSION_FILE="./firmware/src/version.inc"
+          sed -i "s/REVISION_VERSION\s*.EQU\s*[0-9]*/REVISION_VERSION .EQU ${GITHUB_RUN_NUMBER}/" $VERSION_FILE
+
+      - name: install ez80-clang
+        run: |
+          wget --progress=dot:giga https://github.com/dinoboards/ez80-clang/releases/download/v0.0.13-rc.79/ez80-clang-v0.0.13-rc.79.tar.gz
+          tar -xzvf ez80-clang-v0.0.13-rc.79.tar.gz
+          cd ez80-clang-v0.0.13-rc.79
+          sudo ./install.sh
+
+      - name: build apps
+        working-directory: apps
+        run: |
+          source /home/runner/.ez80-clang
+          make
+
+      - name: Archive apps
+        uses: actions/upload-artifact@v4
+        with:
+          compression-level: 0
+          name: bbcbasic
+          path: |
+            bin/*.EXE
+
