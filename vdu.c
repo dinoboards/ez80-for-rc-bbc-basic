@@ -578,37 +578,94 @@ static void graphic_print_char(uint8_t ch) {
   uint16_t font_index = (ch - ' ') * 8;
   uint8_t *p          = &sysfont[font_index];
 
-  uint8_t gpos_y = gpos.y;
+  uint16_t gpos_y = gpos.y;
 
   vdp_cmd_wait_completion();
 
   for (int y = 0; y < 8; y++, gpos_y++) {
-    uint8_t r = *p++;
-    uint8_t col;
+    uint8_t  r = *p++;
+    uint8_t  col;
+    uint16_t gpos_x = gpos.x;
 
     col = r & 0x80 ? 1 : 0;
-    vdp_cmd_pset(gpos.x, gpos_y, col, 0);
+    vdp_cmd_pset(gpos_x, gpos_y, col, 0);
 
     col = r & 0x40 ? 1 : 0;
-    vdp_cmd_pset(gpos.x + 1, gpos_y, col, 0);
+    gpos_x++;
+    VDP_ADDR = gpos_x & 255;
+    VDP_ADDR = 0x80 | 36; // low x
+    VDP_ADDR = gpos_x >> 8;
+    VDP_ADDR = 0x80 | 37; // high x
+    VDP_ADDR = col;
+    VDP_ADDR = 0x80 | 44; // colour
+    VDP_ADDR = CMD_PSET;
+    VDP_ADDR = 0x80 | 46; // command
 
     col = r & 0x20 ? 1 : 0;
-    vdp_cmd_pset(gpos.x + 2, gpos_y, col, 0);
+    gpos_x++;
+    VDP_ADDR = gpos_x & 255;
+    VDP_ADDR = 0x80 | 36; // low x
+    VDP_ADDR = gpos_x >> 8;
+    VDP_ADDR = 0x80 | 37; // high x
+    VDP_ADDR = col;
+    VDP_ADDR = 0x80 | 44; // colour
+    VDP_ADDR = CMD_PSET;
+    VDP_ADDR = 0x80 | 46; // command
 
     col = r & 0x10 ? 1 : 0;
-    vdp_cmd_pset(gpos.x + 3, gpos_y, col, 0);
+    gpos_x++;
+    VDP_ADDR = gpos_x & 255;
+    VDP_ADDR = 0x80 | 36; // low x
+    VDP_ADDR = gpos_x >> 8;
+    VDP_ADDR = 0x80 | 37; // high x
+    VDP_ADDR = col;
+    VDP_ADDR = 0x80 | 44; // colour
+    VDP_ADDR = CMD_PSET;
+    VDP_ADDR = 0x80 | 46; // command
 
     col = r & 0x08 ? 1 : 0;
-    vdp_cmd_pset(gpos.x + 4, gpos_y, col, 0);
+    gpos_x++;
+    VDP_ADDR = gpos_x & 255;
+    VDP_ADDR = 0x80 | 36; // low x
+    VDP_ADDR = gpos_x >> 8;
+    VDP_ADDR = 0x80 | 37; // high x
+    VDP_ADDR = col;
+    VDP_ADDR = 0x80 | 44; // colour
+    VDP_ADDR = CMD_PSET;
+    VDP_ADDR = 0x80 | 46; // command
 
     col = r & 0x04 ? 1 : 0;
-    vdp_cmd_pset(gpos.x + 5, gpos_y, col, 0);
+    gpos_x++;
+    VDP_ADDR = gpos_x & 255;
+    VDP_ADDR = 0x80 | 36; // low x
+    VDP_ADDR = gpos_x >> 8;
+    VDP_ADDR = 0x80 | 37; // high x
+    VDP_ADDR = col;
+    VDP_ADDR = 0x80 | 44; // colour
+    VDP_ADDR = CMD_PSET;
+    VDP_ADDR = 0x80 | 46; // command
 
     col = r & 0x02 ? 1 : 0;
-    vdp_cmd_pset(gpos.x + 6, gpos_y, col, 0);
+    gpos_x++;
+    VDP_ADDR = gpos_x & 255;
+    VDP_ADDR = 0x80 | 36; // low x
+    VDP_ADDR = gpos_x >> 8;
+    VDP_ADDR = 0x80 | 37; // high x
+    VDP_ADDR = col;
+    VDP_ADDR = 0x80 | 44; // colour
+    VDP_ADDR = CMD_PSET;
+    VDP_ADDR = 0x80 | 46; // command
 
     col = r & 0x01 ? 1 : 0;
-    vdp_cmd_pset(gpos.x + 7, gpos_y, col, 0);
+    gpos_x++;
+    VDP_ADDR = gpos_x & 255;
+    VDP_ADDR = 0x80 | 36; // low x
+    VDP_ADDR = gpos_x >> 8;
+    VDP_ADDR = 0x80 | 37; // high x
+    VDP_ADDR = col;
+    VDP_ADDR = 0x80 | 44; // colour
+    VDP_ADDR = CMD_PSET;
+    VDP_ADDR = 0x80 | 46; // command
   }
 
   current_tpos.x++;
