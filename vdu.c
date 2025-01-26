@@ -68,16 +68,20 @@ static RGB default_16_colour_palette[16] = {RGB_BLACK,
 static const int16_t scale_width  = 1280;
 static const int16_t scale_height = 1024;
 
-static int16_t viewport_left          = 0;
-static int16_t viewport_bottom        = 0;
-static int16_t viewport_right         = scale_width - 1; // inclusive or exclusive????
-static int16_t viewport_top           = scale_height - 1;
+static int16_t gviewport_left         = 0;
+static int16_t gviewport_bottom       = 0;
+static int16_t gviewport_right        = scale_width - 1; // inclusive or exclusive????
+static int16_t gviewport_top          = scale_height - 1;
 static point_t current_gpos           = {0, 0};
-static uint8_t current_fg_colour      = 0;
+static uint8_t current_gfg_colour     = 0;
 static uint8_t current_operation_mode = 0;
 static uint8_t current_display_mode   = 255;
 static point_t current_tpos           = {0, 0};
 extern uint8_t sysfont[];
+
+static uint8_t current_tbg_colour       = 0;
+static uint8_t current_tfg_colour       = 1;
+static uint8_t current_mode_colour_mask = 1;
 
 #define MAX_VDP_BYTES 16
 static uint8_t data[MAX_VDP_BYTES];
@@ -92,9 +96,12 @@ static void vdu_plot();
 static void vdu_gcol();
 static void vdu_cls();
 static void vdu_clg();
+static void vdu_colour_define();
 static void vdu_colour();
 static bool line_clip(line_t *l);
+static void preload_fonts();
 static void mode_4_preload_fonts();
+static void mode_5_preload_fonts();
 
 static int16_t convert_x(int16_t logical_x) { return vdp_get_screen_width() * (logical_x + origin.x) / scale_width; }
 
@@ -166,6 +173,12 @@ uint24_t mos_oswrite(uint8_t ch) {
     return -1;
   }
 
+  if (ch == 17) { // vdu_colour
+    current_fn          = vdu_colour;
+    vdu_required_length = 1;
+    return -1;
+  }
+
   if (ch == 18) { // gcol mode, colour
     current_fn          = vdu_gcol;
     vdu_required_length = 2;
@@ -173,12 +186,12 @@ uint24_t mos_oswrite(uint8_t ch) {
   }
 
   if (ch == 19) { // colour
-    current_fn          = vdu_colour;
+    current_fn          = vdu_colour_define;
     vdu_required_length = 5;
     return -1;
   }
 
-  if (ch == 23) { // MODE
+  if (ch == 22) { // MODE
     current_fn          = vdu_mode;
     vdu_required_length = 1;
     return -1;
@@ -261,10 +274,12 @@ static void vdu_cls() {
   // TODO constrain to text view port
   // apply correct back colour
   vdp_cmd_wait_completion();
-  vdp_cmd_logical_move_vdp_to_vram(0, 0, vdp_get_screen_width(), vdp_get_screen_height(), 0, 0, 0);
+  vdp_cmd_logical_move_vdp_to_vram(0, 0, vdp_get_screen_width(), vdp_get_screen_height(), current_tbg_colour, 0, 0);
 
   current_tpos.x = 0;
   current_tpos.y = 0;
+
+  preload_fonts();
 }
 
 // VDU: 16 (0 bytes)
@@ -279,10 +294,24 @@ static void vdu_clg() {
   current_gpos.y = 0;
 }
 
+/*
+VDU 17,n
+VDU 17 sets either the text foreground (n<128) or background (n>=128) colours to
+the value n. It is equivalent to COLOUR n
+*/
+static void vdu_colour() {
+  if (data[0] >= 128)
+    current_tbg_colour = data[0] & current_mode_colour_mask;
+  else
+    current_tfg_colour = data[0] & current_mode_colour_mask;
+
+  preload_fonts();
+}
+
 // VDU: 18 (2 bytes)
 static void vdu_gcol() {
   current_operation_mode = data[0];
-  current_fg_colour      = data[1];
+  current_gfg_colour     = data[1];
 }
 
 // VDU 19,l,p,r,g,b
@@ -295,7 +324,8 @@ static void vdu_gcol() {
 // If p = 25, the mouse logical colour l is given colour components according to r, g
 // and b. This is equivalent to MOUSE COLOUR l,r,g,b.
 
-static void vdu_colour() {
+// TODO currently assumes in 16 colour mode -make it work for all modes
+static void vdu_colour_define() {
   const uint8_t l = data[0];
   const uint8_t p = data[1];
 
@@ -307,7 +337,7 @@ static void vdu_colour() {
     vdp_out_pal(physical_colour.green & 7);
   }
 }
-// VDU: 23 (1 byte)
+// VDU: 22 (1 byte)
 
 // MODE 0: 640x256 graphics, 80x32 characters, 2 colours, 20kB RAM
 // MODE 1: 320x256 graphics, 40x32 characters, 4 colours, 20kB RAM
@@ -335,6 +365,10 @@ static void vdu_colour() {
 
 extern void vdp_set_graphic_4();
 
+// VDU 22 This VDU code is used to change MODE. It is followed by one number which
+// is the new mode. Thus VDU 22,7 is exactly equivalent to MODE 7 (except that
+// it does not change HIMEM).
+
 static void vdu_mode() {
   vdp_set_lines(212);
   current_display_mode = data[0];
@@ -342,28 +376,47 @@ static void vdu_mode() {
   switch (data[0]) {
   case 0:
     vdp_set_palette(default_2_colour_palette);
+    current_tfg_colour       = 1;
+    current_tbg_colour       = 0;
+    current_mode_colour_mask = 1;
     vdp_set_graphic_5();
+    mode_5_preload_fonts();
     break;
 
   case 1:
     vdp_set_palette(default_4_colour_palette);
+    current_tfg_colour       = 3;
+    current_tbg_colour       = 0;
+    current_mode_colour_mask = 3;
     vdp_set_graphic_5();
+    mode_5_preload_fonts();
     break;
 
   case 4:
     vdp_set_palette(default_2_colour_palette);
+    current_tfg_colour       = 1;
+    current_tbg_colour       = 0;
+    current_mode_colour_mask = 1;
     vdp_set_graphic_5();
+    mode_5_preload_fonts();
     break;
 
   case 2:
     vdp_set_palette(default_16_colour_palette);
+    current_tfg_colour       = 7;
+    current_tbg_colour       = 0;
+    current_mode_colour_mask = 15;
     vdp_set_graphic_4();
     mode_4_preload_fonts();
     break;
 
   case 5:
     vdp_set_palette(default_4_colour_palette);
+    current_tfg_colour       = 3;
+    current_tbg_colour       = 0;
+    current_mode_colour_mask = 3;
     vdp_set_graphic_4();
+    mode_4_preload_fonts();
     break;
 
   case 255:
@@ -372,6 +425,8 @@ static void vdu_mode() {
   default:
     vdu_not_implemented();
   }
+
+  vdu_cls();
 }
 
 // VDU: 24 (5 bytes)
@@ -443,9 +498,9 @@ static void vdu_plot() {
     if (intersects) {
       printf("clipped: (%d, %d)-(%d,%d)\r\n", l.a.x, l.a.y, l.b.x, l.b.y);
       printf("draw line from (%d, %d) to (%d, %d) in (%d, %d)", convert_x(l.a.x), convert_y(l.a.y), convert_x(l.b.x),
-             convert_y(l.b.y), current_fg_colour, current_operation_mode);
+             convert_y(l.b.y), current_gfg_colour, current_operation_mode);
 
-      vdp_draw_line(convert_x(l.a.x), convert_y(l.a.y), convert_x(l.b.x), convert_y(l.b.y), current_fg_colour,
+      vdp_draw_line(convert_x(l.a.x), convert_y(l.a.y), convert_x(l.b.x), convert_y(l.b.y), current_gfg_colour,
                     current_operation_mode);
     } else
       printf("line outside of viewport\r\n");
@@ -463,7 +518,7 @@ static void vdu_plot() {
     bptr_y[1]             = data[4];
 
     vdp_cmd_wait_completion();
-    vdp_cmd_pset(convert_x(current_gpos.x), convert_y(current_gpos.y), current_fg_colour, current_operation_mode);
+    vdp_cmd_pset(convert_x(current_gpos.x), convert_y(current_gpos.y), current_gfg_colour, current_operation_mode);
 
     return;
   }
@@ -511,24 +566,24 @@ static bool line_clip(line_t *l) {
 }
 
 static point_t intersect(line_t l, uint8_t edge) {
-  return edge & 8   ? (point_t){l.a.x + (l.b.x - l.a.x) * (viewport_top - l.a.y) / (l.b.y - l.a.y), viewport_top}
-         : edge & 4 ? (point_t){l.a.x + (l.b.x - l.a.x) * (viewport_bottom - l.a.y) / (l.b.y - l.a.y), viewport_bottom}
-         : edge & 2 ? (point_t){viewport_right, l.a.y + (l.b.y - l.a.y) * (viewport_right - l.a.x) / (l.b.x - l.a.x)}
-         : edge & 1 ? (point_t){viewport_left, l.a.y + (l.b.y - l.a.y) * (viewport_left - l.a.x) / (l.b.x - l.a.x)}
+  return edge & 8   ? (point_t){l.a.x + (l.b.x - l.a.x) * (gviewport_top - l.a.y) / (l.b.y - l.a.y), gviewport_top}
+         : edge & 4 ? (point_t){l.a.x + (l.b.x - l.a.x) * (gviewport_bottom - l.a.y) / (l.b.y - l.a.y), gviewport_bottom}
+         : edge & 2 ? (point_t){gviewport_right, l.a.y + (l.b.y - l.a.y) * (gviewport_right - l.a.x) / (l.b.x - l.a.x)}
+         : edge & 1 ? (point_t){gviewport_left, l.a.y + (l.b.y - l.a.y) * (gviewport_left - l.a.x) / (l.b.x - l.a.x)}
                     : (point_t){-1, -1}; // will this happen?
 }
 
 static uint8_t bit_code(point_t p) {
   uint8_t code = 0;
 
-  if (p.x < viewport_left)
+  if (p.x < gviewport_left)
     code |= 1; // left
-  else if (p.x > viewport_right)
+  else if (p.x > gviewport_right)
     code |= 2; // right
 
-  if (p.y < viewport_bottom)
+  if (p.y < gviewport_bottom)
     code |= 4; // bottom
-  else if (p.y > viewport_top)
+  else if (p.y > gviewport_top)
     code |= 8; // top
 
   return code;
@@ -554,13 +609,10 @@ static void vdu_bs() {
 
 static void mode_4_preload_fonts() {
 
-  // erase all of the page first, so we only need to write the on dots
+  // erase all of the page, so we only need to write the on dots
 
   vdp_cmd_wait_completion();
-  vdp_cmd_logical_move_vdp_to_vram(0, 256, vdp_get_screen_width(), vdp_get_screen_height(), 0, 0, 0);
-
-  // vdp_cmd_wait_completion();
-  // vdp_cmd_logical_move_vram_to_vram(0,256, 0,0, 32, 32, 0, 0);
+  vdp_cmd_logical_move_vdp_to_vram(0, 256, vdp_get_screen_width(), vdp_get_screen_height(), current_tbg_colour, 0, 0);
 
   uint8_t *p = sysfont;
 
@@ -576,7 +628,7 @@ static void mode_4_preload_fonts() {
           const bool pixel_on = (r & (1 << (7 - x)));
           if (pixel_on) {
             vdp_cmd_wait_completion();
-            vdp_cmd_pset(gpos_x, gpos_y, 1, 0);
+            vdp_cmd_pset(gpos_x, gpos_y, current_tfg_colour, 0);
           }
           gpos_x++;
         }
@@ -590,6 +642,26 @@ static void mode_4_preload_fonts() {
     }
     gpos_x = 0;
     gpos_y += 8;
+  }
+}
+
+static void mode_5_preload_fonts() { mode_4_preload_fonts(); }
+
+static void preload_fonts() {
+  switch (current_display_mode) {
+  case 0:
+  case 1:
+  case 4:
+    mode_5_preload_fonts();
+    return;
+
+  case 2:
+  case 5:
+    mode_4_preload_fonts();
+    return;
+
+  default:
+    printf("todo: preload fonts\r\n");
   }
 }
 
