@@ -76,7 +76,7 @@ static point_t current_gpos           = {0, 0};
 static uint8_t current_fg_colour      = 0;
 static uint8_t current_operation_mode = 0;
 static uint8_t current_display_mode   = 255;
-static point_t current_tpos = {0, 0};
+static point_t current_tpos           = {0, 0};
 extern uint8_t sysfont[];
 
 #define MAX_VDP_BYTES 16
@@ -532,9 +532,7 @@ static uint8_t bit_code(point_t p) {
   return code;
 }
 
-static void vdu_cr() {
-  current_tpos.x = 0;
-}
+static void vdu_cr() { current_tpos.x = 0; }
 
 static void vdu_lf() {
   current_tpos.y++;
@@ -554,7 +552,7 @@ static void vdu_bs() {
 
 static void graphic_print_char(uint8_t ch) {
 
-  // calculate real physcal location to begin printing;
+  // calculate real physical location to begin printing;
   const point_t gpos = (point_t){current_tpos.x * 8, current_tpos.y * 8};
 
   if (ch == '\r') {
@@ -580,20 +578,42 @@ static void graphic_print_char(uint8_t ch) {
   uint16_t font_index = (ch - ' ') * 8;
   uint8_t *p          = &sysfont[font_index];
 
-  for (int y = 0; y < 8; y++) {
+  uint8_t gpos_y = gpos.y;
+
+  vdp_cmd_wait_completion();
+
+  for (int y = 0; y < 8; y++, gpos_y++) {
     uint8_t r = *p++;
-    for (int x = 0; x < 7; x++) {
-      if (r & (1 << (7 - x))) {
-        vdp_cmd_wait_completion();
-        vdp_cmd_pset(x + gpos.x, y + gpos.y, 1, 0);
-      }
-    }
+    uint8_t col;
+
+    col = r & 0x80 ? 1 : 0;
+    vdp_cmd_pset(gpos.x, gpos_y, col, 0);
+
+    col = r & 0x40 ? 1 : 0;
+    vdp_cmd_pset(gpos.x + 1, gpos_y, col, 0);
+
+    col = r & 0x20 ? 1 : 0;
+    vdp_cmd_pset(gpos.x + 2, gpos_y, col, 0);
+
+    col = r & 0x10 ? 1 : 0;
+    vdp_cmd_pset(gpos.x + 3, gpos_y, col, 0);
+
+    col = r & 0x08 ? 1 : 0;
+    vdp_cmd_pset(gpos.x + 4, gpos_y, col, 0);
+
+    col = r & 0x04 ? 1 : 0;
+    vdp_cmd_pset(gpos.x + 5, gpos_y, col, 0);
+
+    col = r & 0x02 ? 1 : 0;
+    vdp_cmd_pset(gpos.x + 6, gpos_y, col, 0);
+
+    col = r & 0x01 ? 1 : 0;
+    vdp_cmd_pset(gpos.x + 7, gpos_y, col, 0);
   }
 
   current_tpos.x++;
-  // printf("+(%X)", ch);
 
-  if (gpos.x+8 >= (int16_t)vdp_get_screen_width()) {
+  if (gpos.x + 8 >= (int16_t)vdp_get_screen_width()) {
     vdu_cr();
     vdu_lf();
   }
