@@ -105,7 +105,7 @@ static void mode_5_preload_fonts();
 static int16_t convert_x(int16_t logical_x) { return vdp_get_screen_width() * (logical_x + origin.x) / scale_width; }
 
 static int16_t convert_y(int16_t logical_y) {
-  return (vdp_get_screen_height() * ((scale_height - 1) - (logical_y + origin.y))) / scale_height;
+  return (vdp_get_screen_height() * (scale_height - (logical_y + origin.y))) / scale_height;
 }
 
 static void graphic_print_char(uint8_t ch);
@@ -290,35 +290,14 @@ static void vdu_cls() {
 // VDU: 16 (0 bytes)
 static void vdu_clg() {
   // for moment lets just erase to black
-  // TODO constrain to graphic view port
-  // apply correct back colour
+  // TODO: apply correct back colour
 
-  int16_t left = convert_x(gviewport.left);
-  if (left < 0)
-    left = 0;
-  if (left > (int16_t)vdp_get_screen_width())
-    left = (int16_t)vdp_get_screen_width();
-
-  int16_t right = convert_x(gviewport.right);
-  if (right < 0)
-    right = 0;
-  if (right > (int16_t)vdp_get_screen_width())
-    right = (int16_t)vdp_get_screen_width();
-
-  int16_t top = convert_y(gviewport.top);
-  if (top < 0)
-    top = 0;
-  if (top > (int16_t)vdp_get_screen_height())
-    top = (int16_t)vdp_get_screen_height();
-
-  int16_t bottom = convert_y(gviewport.bottom);
-  if (bottom < 0)
-    bottom = 0;
-  if (bottom > (int16_t)vdp_get_screen_height())
-    bottom = (int16_t)vdp_get_screen_height();
-
-  const uint16_t width  = right - left;
-  const uint16_t height = bottom - top;
+  int16_t        left   = convert_x(gviewport.left);
+  int16_t        right  = convert_x(gviewport.right);
+  int16_t        top    = convert_y(gviewport.top);
+  int16_t        bottom = convert_y(gviewport.bottom);
+  const uint16_t width  = right - left + 1;
+  const uint16_t height = bottom - top + 1;
 
   vdp_cmd_wait_completion();
   vdp_cmd_logical_move_vdp_to_vram(left, top, width, height, 0, 0, 0);
@@ -476,6 +455,26 @@ static void vdu_set_gviewport() {
   *p++       = data[5];
   *p++       = data[6];
   *p++       = data[7];
+
+  if (gviewport.left < 0)
+    gviewport.left = 0;
+  if (gviewport.left > scale_width - 1)
+    gviewport.left = scale_width - 1;
+
+  if (gviewport.right < 0)
+    gviewport.right = 0;
+  if (gviewport.right > scale_width - 1)
+    gviewport.right = scale_width - 1;
+
+  if (gviewport.top < 0)
+    gviewport.top = 0;
+  if (gviewport.top > scale_height - 1)
+    gviewport.top = scale_height - 1;
+
+  if (gviewport.bottom < 0)
+    gviewport.bottom = 0;
+  if (gviewport.bottom > scale_height - 1)
+    gviewport.bottom = scale_height - 1;
 }
 
 // VDU: 25 (5 bytes)
