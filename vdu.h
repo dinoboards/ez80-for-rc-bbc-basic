@@ -13,4 +13,11 @@ typedef struct line {
   point_t b;
 } line_t;
 
+typedef struct rectangle {
+  int16_t left;
+  int16_t bottom;
+  int16_t right;
+  int16_t top;
+} rectangle_t;
+
 #endif

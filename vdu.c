@@ -2,6 +2,7 @@
 #include "bbcbasic.h"
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 #include <v99x8.h>
 
 #include <stdio.h>
@@ -68,16 +69,13 @@ static RGB default_16_colour_palette[16] = {RGB_BLACK,
 static const int16_t scale_width  = 1280;
 static const int16_t scale_height = 1024;
 
-static int16_t gviewport_left         = 0;
-static int16_t gviewport_bottom       = 0;
-static int16_t gviewport_right        = scale_width - 1; // inclusive or exclusive????
-static int16_t gviewport_top          = scale_height - 1;
-static point_t current_gpos           = {0, 0};
-static uint8_t current_gfg_colour     = 0;
-static uint8_t current_operation_mode = 0;
-static uint8_t current_display_mode   = 255;
-static point_t current_tpos           = {0, 0};
-extern uint8_t sysfont[];
+static rectangle_t gviewport              = {0, 0, scale_width - 1, scale_height - 1}; // inclusive or exclusive????
+static point_t     current_gpos           = {0, 0};
+static uint8_t     current_gfg_colour     = 0;
+static uint8_t     current_operation_mode = 0;
+static uint8_t     current_display_mode   = 255;
+static point_t     current_tpos           = {0, 0};
+extern uint8_t     sysfont[];
 
 static uint8_t current_tbg_colour       = 0;
 static uint8_t current_tfg_colour       = 1;
@@ -92,6 +90,7 @@ typedef void (*mos_vdu_handler)();
 
 static void vdu_set_origin();
 static void vdu_mode();
+static void vdu_set_gviewport();
 static void vdu_plot();
 static void vdu_gcol();
 static void vdu_cls();
@@ -197,6 +196,12 @@ uint24_t mos_oswrite(uint8_t ch) {
     return -1;
   }
 
+  if (ch == 24) { // set g viewport
+    current_fn          = vdu_set_gviewport;
+    vdu_required_length = 8;
+    return -1;
+  }
+
   if (ch == 25) { // plot
     current_fn          = vdu_plot;
     vdu_required_length = 5;
@@ -287,8 +292,36 @@ static void vdu_clg() {
   // for moment lets just erase to black
   // TODO constrain to graphic view port
   // apply correct back colour
+
+  int16_t left = convert_x(gviewport.left);
+  if (left < 0)
+    left = 0;
+  if (left > (int16_t)vdp_get_screen_width())
+    left = (int16_t)vdp_get_screen_width();
+
+  int16_t right = convert_x(gviewport.right);
+  if (right < 0)
+    right = 0;
+  if (right > (int16_t)vdp_get_screen_width())
+    right = (int16_t)vdp_get_screen_width();
+
+  int16_t top = convert_y(gviewport.top);
+  if (top < 0)
+    top = 0;
+  if (top > (int16_t)vdp_get_screen_height())
+    top = (int16_t)vdp_get_screen_height();
+
+  int16_t bottom = convert_y(gviewport.bottom);
+  if (bottom < 0)
+    bottom = 0;
+  if (bottom > (int16_t)vdp_get_screen_height())
+    bottom = (int16_t)vdp_get_screen_height();
+
+  const uint16_t width  = right - left;
+  const uint16_t height = bottom - top;
+
   vdp_cmd_wait_completion();
-  vdp_cmd_logical_move_vdp_to_vram(0, 0, vdp_get_screen_width(), vdp_get_screen_height(), 0, 0, 0);
+  vdp_cmd_logical_move_vdp_to_vram(left, top, width, height, 0, 0, 0);
 
   current_gpos.x = 0;
   current_gpos.y = 0;
@@ -429,7 +462,23 @@ static void vdu_mode() {
   vdu_cls();
 }
 
-// VDU: 24 (5 bytes)
+/*VDU 24,x1;y1;x2;y2
+VDU 24 defines a graphics viewport. The four parameters define the left, bottom,
+right and top boundaries respectively, relative to the current graphics origin.
+*/
+static void vdu_set_gviewport() {
+  uint8_t *p = (uint8_t *)&gviewport;
+  *p++       = data[0];
+  *p++       = data[1];
+  *p++       = data[2];
+  *p++       = data[3];
+  *p++       = data[4];
+  *p++       = data[5];
+  *p++       = data[6];
+  *p++       = data[7];
+}
+
+// VDU: 25 (5 bytes)
 
 /*
 modes:
@@ -566,24 +615,24 @@ static bool line_clip(line_t *l) {
 }
 
 static point_t intersect(line_t l, uint8_t edge) {
-  return edge & 8   ? (point_t){l.a.x + (l.b.x - l.a.x) * (gviewport_top - l.a.y) / (l.b.y - l.a.y), gviewport_top}
-         : edge & 4 ? (point_t){l.a.x + (l.b.x - l.a.x) * (gviewport_bottom - l.a.y) / (l.b.y - l.a.y), gviewport_bottom}
-         : edge & 2 ? (point_t){gviewport_right, l.a.y + (l.b.y - l.a.y) * (gviewport_right - l.a.x) / (l.b.x - l.a.x)}
-         : edge & 1 ? (point_t){gviewport_left, l.a.y + (l.b.y - l.a.y) * (gviewport_left - l.a.x) / (l.b.x - l.a.x)}
+  return edge & 8   ? (point_t){l.a.x + (l.b.x - l.a.x) * (gviewport.top - l.a.y) / (l.b.y - l.a.y), gviewport.top}
+         : edge & 4 ? (point_t){l.a.x + (l.b.x - l.a.x) * (gviewport.bottom - l.a.y) / (l.b.y - l.a.y), gviewport.bottom}
+         : edge & 2 ? (point_t){gviewport.right, l.a.y + (l.b.y - l.a.y) * (gviewport.right - l.a.x) / (l.b.x - l.a.x)}
+         : edge & 1 ? (point_t){gviewport.left, l.a.y + (l.b.y - l.a.y) * (gviewport.left - l.a.x) / (l.b.x - l.a.x)}
                     : (point_t){-1, -1}; // will this happen?
 }
 
 static uint8_t bit_code(point_t p) {
   uint8_t code = 0;
 
-  if (p.x < gviewport_left)
+  if (p.x < gviewport.left)
     code |= 1; // left
-  else if (p.x > gviewport_right)
+  else if (p.x > gviewport.right)
     code |= 2; // right
 
-  if (p.y < gviewport_bottom)
+  if (p.y < gviewport.bottom)
     code |= 4; // bottom
-  else if (p.y > gviewport_top)
+  else if (p.y > gviewport.top)
     code |= 8; // top
 
   return code;

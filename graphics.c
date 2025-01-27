@@ -11,7 +11,7 @@ void move() {
 
   const point_t p = {x1, y1};
 
-  oswrite_int16(24 + (4 << 8));
+  oswrite_int16(25 + (4 << 8));
   oswrite_point(&p);
 }
 
@@ -22,7 +22,7 @@ void draw() {
 
   const point_t p = {x1, y1};
 
-  oswrite_int16(24 + (5 << 8));
+  oswrite_int16(25 + (5 << 8));
   oswrite_point(&p);
 }
 
