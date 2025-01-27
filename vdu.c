@@ -544,14 +544,15 @@ static void vdu_plot() {
     uint8_t intersects = line_clip(&l);
 
     if (intersects) {
-      printf("clipped: (%d, %d)-(%d,%d)\r\n", l.a.x, l.a.y, l.b.x, l.b.y);
-      printf("draw line from (%d, %d) to (%d, %d) in (%d, %d)", convert_x(l.a.x), convert_y(l.a.y), convert_x(l.b.x),
-             convert_y(l.b.y), current_gfg_colour, current_operation_mode);
+      // printf("clipped: (%d, %d)-(%d,%d)\r\n", l.a.x, l.a.y, l.b.x, l.b.y);
+      // printf("convert: (%d, %d) to (%d, %d) in (%d, %d)", convert_x(l.a.x), convert_y(l.a.y), convert_x(l.b.x), convert_y(l.b.y),
+      //        current_gfg_colour, current_operation_mode);
 
       vdp_draw_line(convert_x(l.a.x), convert_y(l.a.y), convert_x(l.b.x), convert_y(l.b.y), current_gfg_colour,
                     current_operation_mode);
-    } else
-      printf("line outside of viewport\r\n");
+    }
+    //  else
+    //   printf("line outside of viewport\r\n");
 
     return;
   }
@@ -595,20 +596,26 @@ static point_t intersect(line_t l, uint8_t edge);
 
 static bool line_clip(line_t *l) {
 
-  const uint8_t codeA = bit_code(l->a);
-  const uint8_t codeB = bit_code(l->b);
+  uint8_t codeA = bit_code(l->a);
+  uint8_t codeB = bit_code(l->b);
 
-  if (!(codeA | codeB)) // both points within viewport
-    return true;
+  while (true) {
+    if (!(codeA | codeB)) // both points within viewport
+      return true;
 
-  if (codeA & codeB) // line does not intersect viewport
-    return false;
+    if (codeA & codeB) // line does not intersect viewport
+      return false;
 
-  if (codeA) // a outside, intersect with clip edge
-    l->a = intersect(*l, codeA);
+    if (codeA) { // a outside, intersect with clip edge
+      l->a  = intersect(*l, codeA);
+      codeA = bit_code(l->a);
+    }
 
-  if (codeB) // b outside, intersect with clip edge
-    l->b = intersect(*l, codeB);
+    if (codeB) { // b outside, intersect with clip edge
+      l->b  = intersect(*l, codeB);
+      codeB = bit_code(l->b);
+    }
+  }
 
   return true;
 }
