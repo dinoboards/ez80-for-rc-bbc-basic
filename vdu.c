@@ -76,13 +76,13 @@ static uint8_t     current_operation_mode = 0;
 static uint8_t     current_display_mode   = 255;
 extern uint8_t     sysfont[];
 
-static tpoint_t     current_tpos = {0, 0};
-static trectangle_t tviewport    = {0, 26, 63, 0};
-static uint8_t last_text_column = 63;
-static uint8_t last_text_row = 26;
-static uint8_t current_tbg_colour       = 0;
-static uint8_t current_tfg_colour       = 1;
-static uint8_t current_mode_colour_mask = 1;
+static tpoint_t     current_tpos             = {0, 0};
+static trectangle_t tviewport                = {0, 26, 63, 0};
+static uint8_t      last_text_column         = 63;
+static uint8_t      last_text_row            = 26;
+static uint8_t      current_tbg_colour       = 0;
+static uint8_t      current_tfg_colour       = 1;
+static uint8_t      current_mode_colour_mask = 1;
 
 #define MAX_VDP_BYTES 16
 static uint8_t data[MAX_VDP_BYTES];
@@ -212,8 +212,8 @@ uint24_t mos_oswrite(uint8_t ch) {
     return -1;
   }
 
-  if (ch == 28) { //set text viewport
-    current_fn = vdu_set_tviewport;
+  if (ch == 28) { // set text viewport
+    current_fn          = vdu_set_tviewport;
     vdu_required_length = 4;
     return -1;
   }
@@ -290,12 +290,12 @@ static void vdu_cls() {
   // apply correct back colour
   vdp_cmd_wait_completion();
 
-  const uint16_t left =(uint16_t)tviewport.left * 8;
+  const uint16_t left   = (uint16_t)tviewport.left * 8;
   const uint16_t bottom = (uint16_t)tviewport.bottom * 8;
-  const uint16_t right = (uint16_t)tviewport.right * 8;
-  const uint16_t top = (uint16_t)tviewport.top * 8;
+  const uint16_t right  = (uint16_t)tviewport.right * 8;
+  const uint16_t top    = (uint16_t)tviewport.top * 8;
 
-  const uint16_t width = right - left + 8;
+  const uint16_t width  = right - left + 8;
   const uint16_t height = bottom - top + 8;
 
   vdp_cmd_logical_move_vdp_to_vram(left, top, width, height, current_tbg_colour, 0, 0);
@@ -401,7 +401,10 @@ extern void vdp_set_graphic_4();
 static void vdu_mode() {
   vdp_set_lines(212);
   current_display_mode = data[0];
-  last_text_row = 26;
+  last_text_row        = 26;
+  tviewport.left       = 0;
+  tviewport.bottom     = 26;
+  tviewport.top        = 0;
 
   switch (data[0]) {
   case 0:
@@ -409,7 +412,8 @@ static void vdu_mode() {
     current_tfg_colour       = 1;
     current_tbg_colour       = 0;
     current_mode_colour_mask = 1;
-    last_text_column = 63;
+    last_text_column         = 63;
+    tviewport.right          = 63;
     vdp_set_graphic_5();
     mode_5_preload_fonts();
     break;
@@ -419,7 +423,8 @@ static void vdu_mode() {
     current_tfg_colour       = 3;
     current_tbg_colour       = 0;
     current_mode_colour_mask = 3;
-    last_text_column = 63;
+    last_text_column         = 63;
+    tviewport.right          = 63;
     vdp_set_graphic_5();
     mode_5_preload_fonts();
     break;
@@ -429,7 +434,8 @@ static void vdu_mode() {
     current_tfg_colour       = 1;
     current_tbg_colour       = 0;
     current_mode_colour_mask = 1;
-    last_text_column = 63;
+    last_text_column         = 63;
+    tviewport.right          = 63;
     vdp_set_graphic_5();
     mode_5_preload_fonts();
     break;
@@ -439,7 +445,8 @@ static void vdu_mode() {
     current_tfg_colour       = 7;
     current_tbg_colour       = 0;
     current_mode_colour_mask = 15;
-    last_text_column = 31;
+    last_text_column         = 31;
+    tviewport.right          = 31;
     vdp_set_graphic_4();
     mode_4_preload_fonts();
     break;
@@ -449,7 +456,8 @@ static void vdu_mode() {
     current_tfg_colour       = 3;
     current_tbg_colour       = 0;
     current_mode_colour_mask = 3;
-    last_text_column = 31;
+    last_text_column         = 31;
+    tviewport.right          = 31;
     vdp_set_graphic_4();
     mode_4_preload_fonts();
     break;
@@ -605,11 +613,11 @@ static void vdu_plot() {
 // viewport; the left-most column, the bottom row, the right-most column and the top
 // row respectively.
 static void vdu_set_tviewport() {
-  uint8_t * p = (uint8_t *)&tviewport;
-  *p++ = data[0];
-  *p++ = data[1];
-  *p++ = data[2];
-  *p++ = data[3];
+  uint8_t *p = (uint8_t *)&tviewport;
+  *p++       = data[0];
+  *p++       = data[1];
+  *p++       = data[2];
+  *p++       = data[3];
 
   if (tviewport.left < 0)
     tviewport.left = 0;
@@ -634,7 +642,6 @@ static void vdu_set_tviewport() {
   current_tpos.x = tviewport.left;
   current_tpos.y = tviewport.top;
 }
-
 
 // VDU: 29 (4bytes)
 static void vdu_set_origin() {
@@ -709,8 +716,22 @@ static void vdu_lf() {
   current_tpos.y++;
 
   if (current_tpos.y >= tviewport.bottom) {
-    printf("todo: need to scroll for text\r\n");
-    current_tpos.y = tviewport.top;
+    current_tpos.y--;
+
+    uint16_t left   = (uint16_t)tviewport.left * 8;
+    uint16_t top    = (uint16_t)tviewport.top * 8;
+    uint16_t right  = (uint16_t)tviewport.right * 8;
+    uint16_t bottom = (uint16_t)tviewport.bottom * 8;
+
+    uint16_t width  = right - left + 8;
+    uint16_t height = bottom - top;
+
+    // TODO: ONLY SCROLL IF TEXT CURSOR IS ACTIVE
+
+    vdp_cmd_wait_completion();
+    vdp_cmd_move_vram_to_vram(left, top + 8, left, top, width, height, 0);
+    vdp_cmd_wait_completion();
+    vdp_cmd_vdp_to_vram(left, bottom - 8, width, 8, current_tbg_colour, 0);
   }
 }
 
