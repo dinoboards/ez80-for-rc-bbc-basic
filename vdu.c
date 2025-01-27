@@ -1,5 +1,6 @@
 #include "vdu.h"
 #include "bbcbasic.h"
+#include <math.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -71,6 +72,7 @@ static const int16_t scale_height = 1024;
 
 static rectangle_t gviewport              = {0, 0, scale_width - 1, scale_height - 1}; // inclusive or exclusive????
 static point_t     current_gpos           = {0, 0};
+static point_t     previous_gpos          = {0, 0};
 static uint8_t     current_gfg_colour     = 0;
 static uint8_t     current_operation_mode = 0;
 static uint8_t     current_display_mode   = 255;
@@ -112,7 +114,10 @@ static int16_t convert_y(int16_t logical_y) {
   return (vdp_get_screen_height() * (scale_height - (logical_y + origin.y))) / scale_height;
 }
 
+static point_t convert_point(const point_t p) { return (point_t){convert_x(p.x), convert_y(p.y)}; }
+
 static void graphic_print_char(uint8_t ch);
+static void fill_triangle(const point_t *vt1, const point_t *vt2, const point_t *vt3);
 
 mos_vdu_handler current_fn = NULL;
 
@@ -547,7 +552,9 @@ modes:
 static void vdu_plot() {
 
   switch (data[0]) { // mode
-  case 4: {
+  case 4: {          // MOVE
+    previous_gpos = current_gpos;
+
     uint8_t *const bptr_x = (uint8_t *)&current_gpos.x;
     bptr_x[0]             = data[1];
     bptr_x[1]             = data[2];
@@ -559,7 +566,7 @@ static void vdu_plot() {
   }
 
   case 5: {
-    point_t previous_current = current_gpos;
+    previous_gpos = current_gpos;
 
     uint8_t *const bptr_x = (uint8_t *)&current_gpos.x;
     bptr_x[0]             = data[1];
@@ -569,26 +576,18 @@ static void vdu_plot() {
     bptr_y[0]             = data[3];
     bptr_y[1]             = data[4];
 
-    // assume mode 7 and convert 6 bit RGB to G(3)R(3)B(2)
-
-    line_t  l          = {previous_current, current_gpos};
+    line_t  l          = {previous_gpos, current_gpos};
     uint8_t intersects = line_clip(&l);
 
-    if (intersects) {
-      // printf("clipped: (%d, %d)-(%d,%d)\r\n", l.a.x, l.a.y, l.b.x, l.b.y);
-      // printf("convert: (%d, %d) to (%d, %d) in (%d, %d)", convert_x(l.a.x), convert_y(l.a.y), convert_x(l.b.x), convert_y(l.b.y),
-      //        current_gfg_colour, current_operation_mode);
-
+    if (intersects)
       vdp_draw_line(convert_x(l.a.x), convert_y(l.a.y), convert_x(l.b.x), convert_y(l.b.y), current_gfg_colour,
                     current_operation_mode);
-    }
-    //  else
-    //   printf("line outside of viewport\r\n");
-
     return;
   }
 
   case 69: {
+    previous_gpos = current_gpos;
+
     uint8_t *const bptr_x = (uint8_t *)&current_gpos.x;
     bptr_x[0]             = data[1];
     bptr_x[1]             = data[2];
@@ -599,6 +598,27 @@ static void vdu_plot() {
 
     vdp_cmd_wait_completion();
     vdp_cmd_pset(convert_x(current_gpos.x), convert_y(current_gpos.y), current_gfg_colour, current_operation_mode);
+    return;
+  }
+
+  case 85: { // triangle
+    const point_t p1 = convert_point(previous_gpos);
+    const point_t p2 = convert_point(current_gpos);
+    previous_gpos    = current_gpos;
+
+    uint8_t *const bptr_x = (uint8_t *)&current_gpos.x;
+    bptr_x[0]             = data[1];
+    bptr_x[1]             = data[2];
+
+    uint8_t *const bptr_y = (uint8_t *)&current_gpos.y;
+    bptr_y[0]             = data[3];
+    bptr_y[1]             = data[4];
+
+    const point_t p3 = convert_point(current_gpos);
+
+    fill_triangle(&p1, &p2, &p3);
+    // draw line from p1 to p2
+    // then to p2, then back to p1
 
     return;
   }
@@ -836,4 +856,140 @@ static void graphic_print_char(uint8_t ch) {
     vdu_cr();
     vdu_lf();
   }
+}
+
+static int8_t signum(const int a) {
+  if (a < 0)
+    return -1;
+  if (a > 0)
+    return 1;
+  return 0;
+}
+
+// Triangle fill code derived from: https://www.sunshine2k.de/coding/java/TriangleRasterization/TriangleRasterization.html
+
+/**
+ * This method rasterizes a triangle using only integer variables by using a
+ * modified bresenham algorithm.
+ * It's important that v2 and v3 lie on the same horizontal line, that is
+ * v2.y must be equal to v3.y.
+ * @param v1 point_t of triangle
+ * @param v2 point_t of triangle, must have same y-coordinate as v3.
+ * @param v3 point_t of triangle, must have same y-coordinate as v2.
+ */
+static void fill_flat_sided_triangle(const point_t *const v1, const point_t *const v2, const point_t *const v3) {
+  point_t vTmp1 = (point_t){v1->x, v1->y};
+  point_t vTmp2 = (point_t){v1->x, v1->y};
+
+  bool changed1 = false;
+  bool changed2 = false;
+
+  uint16_t dx1 = abs(v2->x - v1->x);
+  uint16_t dy1 = abs(v2->y - v1->y);
+
+  uint16_t dx2 = abs(v3->x - v1->x);
+  uint16_t dy2 = abs(v3->y - v1->y);
+
+  int8_t signx1 = (int)signum(v2->x - v1->x);
+  int8_t signx2 = (int)signum(v3->x - v1->x);
+
+  int8_t signy1 = (int)signum(v2->y - v1->y);
+  int8_t signy2 = (int)signum(v3->y - v1->y);
+
+  if (dy1 > dx1) {
+    uint16_t tmp = dx1;
+    dx1          = dy1;
+    dy1          = tmp;
+    changed1     = true;
+  }
+
+  if (dy2 > dx2) {
+    uint16_t tmp = dx2;
+    dx2          = dy2;
+    dy2          = tmp;
+    changed2     = true;
+  }
+
+  int16_t e1 = 2 * dy1 - dx1;
+  int16_t e2 = 2 * dy2 - dx2;
+
+  for (uint16_t i = 0; i <= dx1; i++) {
+    vdp_draw_line(vTmp1.x, vTmp1.y, vTmp2.x, vTmp2.y, current_gfg_colour, current_operation_mode);
+
+    while (e1 >= 0) {
+      if (changed1)
+        vTmp1.x += signx1;
+      else
+        vTmp1.y += signy1;
+      e1 = e1 - 2 * dx1;
+    }
+
+    if (changed1)
+      vTmp1.y += signy1;
+    else
+      vTmp1.x += signx1;
+
+    e1 = e1 + 2 * dy1;
+
+    while (vTmp2.y != vTmp1.y) {
+      while (e2 >= 0) {
+        if (changed2)
+          vTmp2.x += signx2;
+        else
+          vTmp2.y += signy2;
+        e2 = e2 - 2 * dx2;
+      }
+
+      if (changed2)
+        vTmp2.y += signy2;
+      else
+        vTmp2.x += signx2;
+
+      e2 = e2 + 2 * dy2;
+    }
+  }
+}
+
+static void fill_general_triangle(const point_t *const vt1, const point_t *const vt2, const point_t *const vt3) {
+  const point_t vTmp =
+      (point_t){(int16_t)((int24_t)vt1->x + (((int24_t)vt3->x - (int24_t)vt1->x) * ((int24_t)vt2->y - (int24_t)vt1->y) /
+                                             ((int24_t)vt3->y - (int24_t)vt1->y))),
+                vt2->y};
+  fill_flat_sided_triangle(vt1, vt2, &vTmp);
+  fill_flat_sided_triangle(vt3, vt2, &vTmp);
+}
+
+static void fill_triangle(const point_t *vt1, const point_t *vt2, const point_t *vt3) {
+
+  const point_t *vTmp;
+
+  if (vt1->y > vt2->y) {
+    vTmp = vt1;
+    vt1  = vt2;
+    vt2  = vTmp;
+  }
+
+  if (vt1->y > vt3->y) {
+    vTmp = vt1;
+    vt1  = vt3;
+    vt3  = vTmp;
+  }
+
+  if (vt2->y > vt3->y) {
+    vTmp = vt2;
+    vt2  = vt3;
+    vt3  = vTmp;
+  }
+
+  if (vt2->y == vt3->y) {
+    fill_flat_sided_triangle(vt1, vt2, vt3);
+    return;
+  }
+
+  if (vt1->y == vt2->y) {
+    fill_flat_sided_triangle(vt3, vt1, vt2);
+    return;
+  }
+
+  fill_general_triangle(vt1, vt2, vt3);
 }

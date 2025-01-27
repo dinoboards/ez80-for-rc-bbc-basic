@@ -32,4 +32,10 @@ typedef struct trectangle {
   uint8_t top;
 } trectangle_t;
 
+typedef struct triangle {
+  point_t vt1;
+  point_t vt2;
+  point_t vt3;
+} triangle_t;
+
 #endif
