@@ -70,7 +70,8 @@ static RGB default_16_colour_palette[16] = {RGB_BLACK,
 static const int16_t scale_width  = 1280;
 static const int16_t scale_height = 1024;
 
-static rectangle_t gviewport              = {0, 0, scale_width - 1, scale_height - 1}; // inclusive or exclusive????
+static rectangle_t gviewport = {0, 0, scale_width - 1, scale_height - 1}; // inclusive or exclusive????
+static rectangle_t gsviewport;
 static point_t     current_gpos           = {0, 0};
 static point_t     previous_gpos          = {0, 0};
 static uint8_t     current_gfg_colour     = 0;
@@ -474,6 +475,11 @@ static void vdu_mode() {
     vdu_not_implemented();
   }
 
+  gsviewport.left   = convert_x(gviewport.left);
+  gsviewport.top    = convert_y(gviewport.top);
+  gsviewport.right  = convert_x(gviewport.right);
+  gsviewport.bottom = convert_y(gviewport.bottom);
+
   vdu_cls();
 }
 
@@ -511,6 +517,11 @@ static void vdu_set_gviewport() {
     gviewport.bottom = 0;
   if (gviewport.bottom > scale_height - 1)
     gviewport.bottom = scale_height - 1;
+
+  gsviewport.left   = convert_x(gviewport.left);
+  gsviewport.top    = convert_y(gviewport.top);
+  gsviewport.right  = convert_x(gviewport.right);
+  gsviewport.bottom = convert_y(gviewport.bottom);
 }
 
 // VDU: 25 (5 bytes)
@@ -867,6 +878,31 @@ static int8_t signum(const int a) {
   return 0;
 }
 
+static void draw_clipped_line(uint16_t x1, uint16_t y1, uint16_t x2) {
+  if (y1 > gsviewport.bottom)
+    return;
+  if (y1 < gsviewport.top)
+    return;
+
+  if (x1 < gsviewport.left) {
+    if (x2 < gsviewport.left)
+      return;
+    x1 = gsviewport.left;
+  }
+  if (x1 > gsviewport.right) {
+    if (x2 > gsviewport.right)
+      return;
+    x1 = gsviewport.right;
+  }
+
+  if (x2 < gsviewport.left)
+    x2 = gsviewport.left;
+  if (x2 > gsviewport.right)
+    x2 = gsviewport.right;
+
+  vdp_draw_line(x1, y1, x2, y1, current_gfg_colour, current_operation_mode);
+}
+
 // Triangle fill code derived from: https://www.sunshine2k.de/coding/java/TriangleRasterization/TriangleRasterization.html
 
 /**
@@ -879,6 +915,7 @@ static int8_t signum(const int a) {
  * @param v3 point_t of triangle, must have same y-coordinate as v2.
  */
 static void fill_flat_sided_triangle(const point_t *const v1, const point_t *const v2, const point_t *const v3) {
+
   point_t vTmp1 = (point_t){v1->x, v1->y};
   point_t vTmp2 = (point_t){v1->x, v1->y};
 
@@ -915,7 +952,7 @@ static void fill_flat_sided_triangle(const point_t *const v1, const point_t *con
   int16_t e2 = 2 * dy2 - dx2;
 
   for (uint16_t i = 0; i <= dx1; i++) {
-    vdp_draw_line(vTmp1.x, vTmp1.y, vTmp2.x, vTmp2.y, current_gfg_colour, current_operation_mode);
+    draw_clipped_line(vTmp1.x, vTmp1.y, vTmp2.x);
 
     while (e1 >= 0) {
       if (changed1)
