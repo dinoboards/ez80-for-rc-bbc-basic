@@ -20,4 +20,16 @@ typedef struct rectangle {
   int16_t top;
 } rectangle_t;
 
+typedef struct tpoint {
+  uint8_t x;
+  uint8_t y;
+} tpoint_t;
+
+typedef struct trectangle {
+  uint8_t left;
+  uint8_t bottom;
+  uint8_t right;
+  uint8_t top;
+} trectangle_t;
+
 #endif

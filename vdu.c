@@ -74,9 +74,12 @@ static point_t     current_gpos           = {0, 0};
 static uint8_t     current_gfg_colour     = 0;
 static uint8_t     current_operation_mode = 0;
 static uint8_t     current_display_mode   = 255;
-static point_t     current_tpos           = {0, 0};
 extern uint8_t     sysfont[];
 
+static tpoint_t     current_tpos = {0, 0};
+static trectangle_t tviewport    = {0, 26, 63, 0};
+static uint8_t last_text_column = 63;
+static uint8_t last_text_row = 26;
 static uint8_t current_tbg_colour       = 0;
 static uint8_t current_tfg_colour       = 1;
 static uint8_t current_mode_colour_mask = 1;
@@ -88,6 +91,7 @@ static uint8_t vdu_required_length = 0;
 
 typedef void (*mos_vdu_handler)();
 
+static void vdu_set_tviewport();
 static void vdu_set_origin();
 static void vdu_mode();
 static void vdu_set_gviewport();
@@ -208,6 +212,12 @@ uint24_t mos_oswrite(uint8_t ch) {
     return -1;
   }
 
+  if (ch == 28) { //set text viewport
+    current_fn = vdu_set_tviewport;
+    vdu_required_length = 4;
+    return -1;
+  }
+
   if (ch == 29) { // set origin
     current_fn          = vdu_set_origin;
     vdu_required_length = 4;
@@ -271,7 +281,7 @@ void vdu() {
 VDU 12 clears either the current text viewport (by default or after a VDU 4
 command) or the current graphics viewport (after a VDU 5 command) to the current
 text or graphics background colour respectively. In addition the text or graphics
-cursor is moved to its home position (see VDU 3
+cursor is moved to its home position (see VDU 3)
 */
 
 static void vdu_cls() {
@@ -279,12 +289,19 @@ static void vdu_cls() {
   // TODO constrain to text view port
   // apply correct back colour
   vdp_cmd_wait_completion();
-  vdp_cmd_logical_move_vdp_to_vram(0, 0, vdp_get_screen_width(), vdp_get_screen_height(), current_tbg_colour, 0, 0);
 
-  current_tpos.x = 0;
-  current_tpos.y = 0;
+  const uint16_t left =(uint16_t)tviewport.left * 8;
+  const uint16_t bottom = (uint16_t)tviewport.bottom * 8;
+  const uint16_t right = (uint16_t)tviewport.right * 8;
+  const uint16_t top = (uint16_t)tviewport.top * 8;
 
-  preload_fonts();
+  const uint16_t width = right - left + 8;
+  const uint16_t height = bottom - top + 8;
+
+  vdp_cmd_logical_move_vdp_to_vram(left, top, width, height, current_tbg_colour, 0, 0);
+
+  current_tpos.x = tviewport.left;
+  current_tpos.y = tviewport.top;
 }
 
 // VDU: 16 (0 bytes)
@@ -384,6 +401,7 @@ extern void vdp_set_graphic_4();
 static void vdu_mode() {
   vdp_set_lines(212);
   current_display_mode = data[0];
+  last_text_row = 26;
 
   switch (data[0]) {
   case 0:
@@ -391,6 +409,7 @@ static void vdu_mode() {
     current_tfg_colour       = 1;
     current_tbg_colour       = 0;
     current_mode_colour_mask = 1;
+    last_text_column = 63;
     vdp_set_graphic_5();
     mode_5_preload_fonts();
     break;
@@ -400,6 +419,7 @@ static void vdu_mode() {
     current_tfg_colour       = 3;
     current_tbg_colour       = 0;
     current_mode_colour_mask = 3;
+    last_text_column = 63;
     vdp_set_graphic_5();
     mode_5_preload_fonts();
     break;
@@ -409,6 +429,7 @@ static void vdu_mode() {
     current_tfg_colour       = 1;
     current_tbg_colour       = 0;
     current_mode_colour_mask = 1;
+    last_text_column = 63;
     vdp_set_graphic_5();
     mode_5_preload_fonts();
     break;
@@ -418,6 +439,7 @@ static void vdu_mode() {
     current_tfg_colour       = 7;
     current_tbg_colour       = 0;
     current_mode_colour_mask = 15;
+    last_text_column = 31;
     vdp_set_graphic_4();
     mode_4_preload_fonts();
     break;
@@ -427,6 +449,7 @@ static void vdu_mode() {
     current_tfg_colour       = 3;
     current_tbg_colour       = 0;
     current_mode_colour_mask = 3;
+    last_text_column = 31;
     vdp_set_graphic_4();
     mode_4_preload_fonts();
     break;
@@ -577,6 +600,42 @@ static void vdu_plot() {
   }
 }
 
+// VDU 28,lx,by,rx,ty
+// VDU 28 defines a text viewport. The parameters specify the boundary of the
+// viewport; the left-most column, the bottom row, the right-most column and the top
+// row respectively.
+static void vdu_set_tviewport() {
+  uint8_t * p = (uint8_t *)&tviewport;
+  *p++ = data[0];
+  *p++ = data[1];
+  *p++ = data[2];
+  *p++ = data[3];
+
+  if (tviewport.left < 0)
+    tviewport.left = 0;
+  if (tviewport.left > last_text_column)
+    tviewport.left = last_text_column;
+
+  if (tviewport.right < 0)
+    tviewport.right = 0;
+  if (tviewport.right > last_text_column)
+    tviewport.right = last_text_column;
+
+  if (tviewport.top < 0)
+    tviewport.top = 0;
+  if (tviewport.top > last_text_row)
+    tviewport.top = last_text_row;
+
+  if (tviewport.bottom < 0)
+    tviewport.bottom = 0;
+  if (tviewport.bottom > last_text_row)
+    tviewport.bottom = last_text_row;
+
+  current_tpos.x = tviewport.left;
+  current_tpos.y = tviewport.top;
+}
+
+
 // VDU: 29 (4bytes)
 static void vdu_set_origin() {
   uint8_t *const bptr_x = (uint8_t *)&origin.x;
@@ -644,21 +703,19 @@ static uint8_t bit_code(point_t p) {
   return code;
 }
 
-static void vdu_cr() { current_tpos.x = 0; }
+static void vdu_cr() { current_tpos.x = tviewport.left; }
 
 static void vdu_lf() {
   current_tpos.y++;
 
-  int16_t gpos_y = current_tpos.y * 8;
-
-  if (gpos_y > (int16_t)vdp_get_screen_height() - 7) {
+  if (current_tpos.y >= tviewport.bottom) {
     printf("todo: need to scroll for text\r\n");
-    current_tpos.y = 0;
+    current_tpos.y = tviewport.top;
   }
 }
 
 static void vdu_bs() {
-  if (current_tpos.x != 0)
+  if (current_tpos.x > tviewport.left)
     current_tpos.x--;
 }
 
@@ -744,7 +801,7 @@ static void graphic_print_char(uint8_t ch) {
     return;
   }
 
-  const point_t gpos = (point_t){current_tpos.x * 8, current_tpos.y * 8};
+  const point_t gpos = (point_t){(int16_t)current_tpos.x * 8, (int16_t)current_tpos.y * 8};
 
   // calculate x and y of 'ch'
   const uint16_t from_x = (ch % 32) * 8;
@@ -754,8 +811,7 @@ static void graphic_print_char(uint8_t ch) {
   vdp_cmd_logical_move_vram_to_vram(from_x, from_y, gpos.x, gpos.y, 8, 8, 0, 0);
 
   current_tpos.x++;
-
-  if (gpos.x + 8 >= (int16_t)vdp_get_screen_width()) {
+  if (current_tpos.x > tviewport.right) {
     vdu_cr();
     vdu_lf();
   }
