@@ -695,6 +695,7 @@ static bool line_clip(line_t *l) {
     if (codeA) { // a outside, intersect with clip edge
       l->a  = intersect(*l, codeA);
       codeA = bit_code(l->a);
+      continue;
     }
 
     if (codeB) { // b outside, intersect with clip edge
