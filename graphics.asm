@@ -181,7 +181,7 @@ PLOT:			CALL	EXPRI		; Parse mode
 			CALL	COMMA
 			CALL	EXPR_W2		; Parse X and Y
 			POP	BC		; Pop mode (C) off stack
-PLOT_1:			VDU	24		; VDU code for PLOT
+PLOT_1:			VDU	25		; VDU code for PLOT
 			VDU	C		;  C: Mode
 			VDU	E		; DE: X
 			VDU	D

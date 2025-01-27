@@ -197,7 +197,7 @@ uint24_t mos_oswrite(uint8_t ch) {
     return -1;
   }
 
-  if (ch == 24) { // plot
+  if (ch == 25) { // plot
     current_fn          = vdu_plot;
     vdu_required_length = 5;
     return -1;
