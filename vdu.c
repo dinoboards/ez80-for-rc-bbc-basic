@@ -145,8 +145,10 @@ uint24_t mos_oswrite(uint8_t ch) {
   // print to graphic screen at current text post
 
   // for the time, lets dual output to serial and graphic
-  return ch;
-  // return -1;
+  if (ch <= 127)
+    return ch;
+
+  return -1;
 }
 
 void vdu() {

@@ -1,5 +1,6 @@
 #include "../bbcbasic.h"
 #include "../vdu.h"
+#include <string.h>
 
 #include <stdio.h>
 /*
@@ -13,6 +14,11 @@ static void vdu_redefine_font() {
 
   printf("vdu_redefine_font: %x, %x, %x", data[0], data[1], data[2]);
   // calculate x and y of 'ch'
+
+  uint8_t *src  = &data[1];
+  uint8_t *dest = &font_patterns[data[0] * 8];
+  memcpy(dest, src, 8);
+
   uint16_t       gpos_x = (data[0] % 32) * 8;
   uint16_t       gpos_y = 256 + (data[0] / 32) * 8;
   const uint8_t *p      = &data[1];

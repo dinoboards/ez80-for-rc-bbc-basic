@@ -12,5 +12,5 @@ void vdu_colour() {
   else
     current_tfg_colour = data[0] & current_mode_colour_mask;
 
-  preload_fonts();
+  preload_font_patterns();
 }

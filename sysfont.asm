@@ -1,13 +1,11 @@
 		.ASSUME	ADL=1
-
 		INCLUDE	"equs.inc"
 		INCLUDE	"macros.inc"
-
 		SECTION	.text, "ax", @progbits
-
 		.global _sysfont
 
 	section	.data, "aw", @progbits
+
 
 _sysfont:
 	DB	$00, $00, $00, $00, $00, $00, $00, $00

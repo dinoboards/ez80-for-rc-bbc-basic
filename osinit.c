@@ -1,4 +1,5 @@
 #include "ram.h"
+#include "vdu.h"
 #include <stdbool.h>
 #include <stdio.h>
 
@@ -26,6 +27,8 @@ bool test_at(volatile uint8_t *ptr) {
 #define _2048K (uint8_t *)0x200000 + 2048 * 1024
 
 void osinit() {
+  init_font_patterns();
+
   LOMEM = (uint8_t *)(((uint24_t)_heap + 255) & ~255);
   printf("LOMEM: %p\r\n", LOMEM);
 

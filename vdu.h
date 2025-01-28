@@ -88,9 +88,8 @@ extern void vdu_plot();
 extern void vdu_set_tviewport();
 extern void vdu_set_origin();
 
-extern void        mode_4_preload_fonts();
-extern void        preload_fonts();
-static inline void mode_5_preload_fonts() { mode_4_preload_fonts(); }
+extern void init_font_patterns();
+extern void preload_font_patterns();
 
 extern int16_t convert_x(int16_t logical_x);
 extern int16_t convert_y(int16_t logical_y);
@@ -113,7 +112,8 @@ extern point_t     previous_gpos;
 extern uint8_t     current_gfg_colour;
 extern uint8_t     current_operation_mode;
 extern uint8_t     current_display_mode;
-extern uint8_t     sysfont[];
+extern uint8_t     sysfont[(128 - ' ') * 8]; // 96*8
+extern uint8_t     font_patterns[256 * 8];
 
 extern tpoint_t     current_tpos;
 extern trectangle_t tviewport;

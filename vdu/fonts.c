@@ -1,25 +1,23 @@
 #include "../vdu.h"
+#include <string.h>
 #include <v99x8.h>
 
 #include <stdio.h>
 
-void mode_4_preload_fonts() {
-
+void preload_font_patterns() {
   // erase all of the page, so we only need to write the on dots
-
   vdp_cmd_wait_completion();
   vdp_cmd_logical_move_vdp_to_vram(0, 256, vdp_get_screen_width(), vdp_get_screen_height(), current_tbg_colour, 0, 0);
 
-  uint8_t *p = sysfont;
+  uint8_t *p = font_patterns;
 
-  const uint8_t starting_ch = ' ';
-  uint16_t      gpos_x      = (starting_ch % 32) * 8;
-  uint16_t      gpos_y      = 256 + (starting_ch / 32) * 8;
+  uint16_t gpos_x = 0;
+  uint16_t gpos_y = 256;
 
-  for (int ch_row = ' '; ch_row < 127; ch_row += 32) {
+  for (int ch_row = 0; ch_row < 256; ch_row += 32) {
     for (int ch_col = 0; ch_col < 32; ch_col++) {
       for (int y = 0; y < 8; y++) {
-        uint8_t r = *p++;
+        const uint8_t r = *p++;
         for (int x = 0; x < 8; x++) {
           const bool pixel_on = (r & (1 << (7 - x)));
           if (pixel_on) {
@@ -41,20 +39,10 @@ void mode_4_preload_fonts() {
   }
 }
 
-void preload_fonts() {
-  switch (current_display_mode) {
-  case 0:
-  case 1:
-  case 4:
-    mode_5_preload_fonts();
-    return;
+void init_font_patterns() {
+  memset(font_patterns, 0, 256 * 8);
 
-  case 2:
-  case 5:
-    mode_4_preload_fonts();
-    return;
+  memcpy(&font_patterns[' ' * 8], sysfont, sizeof(sysfont));
 
-  default:
-    printf("todo: preload fonts\r\n");
-  }
+  preload_font_patterns();
 }
