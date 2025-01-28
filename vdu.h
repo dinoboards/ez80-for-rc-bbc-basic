@@ -87,6 +87,7 @@ extern void vdu_set_gviewport();
 extern void vdu_plot();
 extern void vdu_set_tviewport();
 extern void vdu_set_origin();
+extern void vdu_tab();
 
 extern void init_font_patterns();
 extern void preload_font_patterns();

@@ -1687,7 +1687,9 @@ GETIME:
 
 ; PUTCSR: move to cursor to x=DE, y=HL
 ;
-PUTCSR:
+PUTCSR:		VDU	31
+		VDU	E
+		VDU	L
 		RET
 
 ; GETCSR: return cursor position in x=DE, y=HL

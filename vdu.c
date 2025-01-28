@@ -138,6 +138,12 @@ uint24_t mos_oswrite(uint8_t ch) {
     return -1;
   }
 
+  if (ch == 31) {
+    current_fn          = vdu_tab;
+    vdu_required_length = 2;
+    return -1;
+  }
+
   if (current_display_mode == 255)
     return ch;
 
