@@ -1,0 +1,117 @@
+*SPOOL BOB.TXT
+
+F = OPENOUT "TEST.DAT"
+
+PRINT #7, "bob"
+
+CLOSE #7
+
+*SPOOL
+
+*BYE
+
+X = OPENOUT "TEST2.DAT"
+PRINT F
+
+
+c:ez80 -m=2b -m0=2w -i=2b
+c:ez80 -s0
+
+        10 *VDP_REGWR 0, &0E
+        11 *VDP_REGWR 1, &40
+        12 *VDP_REGWR 2, &1F
+        13 *VDP_REGWR 3, &00
+        14 *VDP_REGWR 4, &00
+        15 *VDP_REGWR 5, &F7
+        16 *VDP_REGWR 6, &1E
+        17 *VDP_REGWR 7, &00
+        18 *VDP_REGWR 8, &8A
+        19 *VDP_REGWR 9, &00
+        20 *VDP_REGWR 10, &00
+        21 *VDP_REGWR 11, &01
+
+*VDP_CLEAR_MEM
+
+*VDP_CMD_VDP_TO_VRAM 10, 10, 200, 100, 99, 0
+
+  10 *VDP_GRAPHIC_MODE 7
+  15 CLG
+  20 VDU 29,0;0;
+  30
+  40 GCOL 0,63,1,63
+  50 VDU 24,69,640;512;
+  50 REM DRAW 1023,2000
+
+  10 MODE 0
+  15 CLG
+  20 GCOL 0, 1
+  25 VDU 24,640;512;1280;1024;
+  30 FOR I = 0 TO 1280 STEP 30
+  31 REM PRINT I
+  40 MOVE 0,0
+  50 DRAW I, 1024
+  60 NEXT I
+
+
+  REM GR 5, 512
+  GCOL 0, 1:MOVE 0,0:MODE 0:CLG:DRAW 1280,1024
+  GCOL 0, 2:MOVE 0,0:MODE 1:VDU 19,2,9,0,0,0:CLG:DRAW 1280,1024
+  GCOL 0, 2:MOVE 0,0:MODE 1:CLG:DRAW 1280,1024
+  GCOL 0, 1:MOVE 0,0:MODE 4:CLG:DRAW 1280,1024
+
+
+  REM GR 4, 256
+  CLG:GCOL 0, 3:MOVE 0,0:MODE 2:CLG:DRAW 1280,1024
+  CLG:GCOL 0, 1:MOVE 0,0:MODE 5:CLG:DRAW 1280,1024
+
+
+*VDP_CMD_LINE 40, 40, 100, 20, 0, 255, 0
+
+*VDP_DRAW_LINE 15, 25, 200, 120, 99, 0
+*VDP_DRAW_LINE 200, 25, 20, 120, 99, 0
+*VDP_DRAW_LINE 200, 99, 20, 5, 255, 0
+
+
+print VDP_IO_DATA
+VDP_IO_DATA = 3434
+
+*VDP_SET_PORTS $FF98, $FF9B, ...
+
+REM MOVE
+VDU 24,4,100;200;
+
+
+        10 MODE 2
+        20 REM Set up a text viewport 6 characters square
+        30 VDU 28,5,10,10,5
+        40 REM Change the background colour to red
+        50 COLOUR ON 255,0,0
+        60 REM Clear the text screen to show where it is
+        70 CLS
+        80 REM Demonstrate scrolling
+        90 FOR N% = 1 TO 20
+       100   PRINT N%
+       110 NEXT N%
+       120 REM Show position of character (2,3)
+       130 PRINT TAB(2,3);"*"
+       140 END
+
+
+
+    10 MODE 2
+    20 CLG
+    30 CLS
+    35 GCOL 0, 2
+    36 VDU 24, 100;400;900;800;
+    40 MOVE 100,500
+    50 DRAW 1000,1000
+    60 DRAW 800,200
+    65 DRAW 100, 500
+    70 GCOL 0, 1
+    80 MOVE 100,500
+    90 MOVE 1000,1000
+    100 PLOT 85, 800,200
+
+VDU 23,32,&FF,&FF,&80,&80,&FF,&FF,&FF,&FF
+VDU 23,225,&18,&18,&7E,&18,&3C,&66,&66,&00
+PRINT CHR$(225)

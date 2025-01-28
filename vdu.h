@@ -82,6 +82,7 @@ extern void vdu_colour();
 extern void vdu_gcol();
 extern void vdu_colour_define();
 extern void vdu_mode();
+extern void vdu_multi_purpose();
 extern void vdu_set_gviewport();
 extern void vdu_plot();
 extern void vdu_set_tviewport();

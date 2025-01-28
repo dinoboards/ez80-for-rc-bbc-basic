@@ -108,6 +108,12 @@ uint24_t mos_oswrite(uint8_t ch) {
     return -1;
   }
 
+  if (ch == 23) { // multi purpose
+    current_fn          = vdu_multi_purpose;
+    vdu_required_length = 9;
+    return -1;
+  }
+
   if (ch == 24) { // set g viewport
     current_fn          = vdu_set_gviewport;
     vdu_required_length = 8;
@@ -188,7 +194,7 @@ static void graphic_print_char(uint8_t ch) {
 
   // calculate real physical location to begin printing;
 
-  if ((ch < ' ') || (ch >= 127)) { // TODO: WE NEED TO RENDER OUT BITMAPS FOR ALL CHARS AFTER ' '
+  if ((ch < ' ')) { // TODO: WE NEED TO RENDER OUT BITMAPS FOR ALL CHARS AFTER ' '
     // printf("TODO: process char 0x'%X'\r\n", ch);
     return;
   }
