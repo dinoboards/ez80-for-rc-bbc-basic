@@ -4,38 +4,30 @@
 
 #include <stdio.h>
 
-void preload_font_patterns() {
-  // erase all of the page, so we only need to write the on dots
+void prepare_font_pattern(uint8_t ch, uint16_t gpos_x, uint16_t gpos_y) {
+  if (font_color[ch].fg == current_tfg_colour && font_color[ch].bg == current_tbg_colour)
+    return;
+
+  uint8_t *p        = &font_patterns[ch * 8];
+  font_color[ch].fg = current_tfg_colour;
+  font_color[ch].bg = current_tbg_colour;
+
   vdp_cmd_wait_completion();
-  vdp_cmd_logical_move_vdp_to_vram(0, 256, vdp_get_screen_width(), vdp_get_screen_height(), current_tbg_colour, 0, 0);
+  vdp_cmd_logical_move_vdp_to_vram(gpos_x, gpos_y, 8, 8, current_tbg_colour, 0, 0);
 
-  uint8_t *p = font_patterns;
-
-  uint16_t gpos_x = 0;
-  uint16_t gpos_y = 256;
-
-  for (int ch_row = 0; ch_row < 256; ch_row += 32) {
-    for (int ch_col = 0; ch_col < 32; ch_col++) {
-      for (int y = 0; y < 8; y++) {
-        const uint8_t r = *p++;
-        for (int x = 0; x < 8; x++) {
-          const bool pixel_on = (r & (1 << (7 - x)));
-          if (pixel_on) {
-            vdp_cmd_wait_completion();
-            vdp_cmd_pset(gpos_x, gpos_y, current_tfg_colour, 0);
-          }
-          gpos_x++;
-        }
-
-        gpos_x -= 8;
-        gpos_y++;
+  for (int y = 0; y < 8; y++) {
+    const uint8_t r = *p++;
+    for (int x = 0; x < 8; x++) {
+      const bool pixel_on = (r & (1 << (7 - x)));
+      if (pixel_on) {
+        vdp_cmd_wait_completion();
+        vdp_cmd_pset(gpos_x, gpos_y, current_tfg_colour, 0);
       }
-
-      gpos_x += 8;
-      gpos_y -= 8;
+      gpos_x++;
     }
-    gpos_x = 0;
-    gpos_y += 8;
+
+    gpos_x -= 8;
+    gpos_y++;
   }
 }
 
@@ -44,5 +36,8 @@ void init_font_patterns() {
 
   memcpy(&font_patterns[' ' * 8], sysfont, sizeof(sysfont));
 
-  preload_font_patterns();
+  for (int i = 0; i < 256; i++) {
+    font_color[i].fg = 255;
+    font_color[i].bg = 255;
+  }
 }

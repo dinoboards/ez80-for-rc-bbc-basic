@@ -23,14 +23,15 @@ RGB     default_16_colour_palette[16] = {RGB_BLACK,
 const int16_t scale_width  = 1280;
 const int16_t scale_height = 1024;
 
-rectangle_t gviewport = {0, 0, scale_width - 1, scale_height - 1}; // inclusive or exclusive????
-rectangle_t gsviewport;
-point_t     current_gpos           = {0, 0};
-point_t     previous_gpos          = {0, 0};
-uint8_t     current_gfg_colour     = 0;
-uint8_t     current_operation_mode = 0;
-uint8_t     current_display_mode   = 255;
-uint8_t     font_patterns[256 * 8];
+rectangle_t    gviewport = {0, 0, scale_width - 1, scale_height - 1}; // inclusive or exclusive????
+rectangle_t    gsviewport;
+point_t        current_gpos           = {0, 0};
+point_t        previous_gpos          = {0, 0};
+uint8_t        current_gfg_colour     = 0;
+uint8_t        current_operation_mode = 0;
+uint8_t        current_display_mode   = 255;
+uint8_t        font_patterns[256 * 8];
+text_colours_t font_color[256];
 
 tpoint_t     current_tpos             = {0, 0};
 trectangle_t tviewport                = {0, 26, 63, 0};

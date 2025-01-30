@@ -38,6 +38,11 @@ typedef struct triangle {
   point_t vt3;
 } triangle_t;
 
+typedef struct text_colours {
+  uint8_t fg;
+  uint8_t bg;
+} text_colours_t;
+
 #define RGB_BLACK                                                                                                                  \
   (RGB) { 0, 0, 0 }
 #define RGB_WHITE                                                                                                                  \
@@ -90,7 +95,7 @@ extern void vdu_set_origin();
 extern void vdu_tab();
 
 extern void init_font_patterns();
-extern void preload_font_patterns();
+void        prepare_font_pattern(uint8_t ch, uint16_t x, uint16_t y);
 
 extern int16_t convert_x(int16_t logical_x);
 extern int16_t convert_y(int16_t logical_y);
@@ -106,15 +111,16 @@ extern RGB     default_16_colour_palette[16];
 extern const int16_t scale_width;
 extern const int16_t scale_height;
 
-extern rectangle_t gviewport;
-extern rectangle_t gsviewport;
-extern point_t     current_gpos;
-extern point_t     previous_gpos;
-extern uint8_t     current_gfg_colour;
-extern uint8_t     current_operation_mode;
-extern uint8_t     current_display_mode;
-extern uint8_t     sysfont[(128 - ' ') * 8]; // 96*8
-extern uint8_t     font_patterns[256 * 8];
+extern rectangle_t    gviewport;
+extern rectangle_t    gsviewport;
+extern point_t        current_gpos;
+extern point_t        previous_gpos;
+extern uint8_t        current_gfg_colour;
+extern uint8_t        current_operation_mode;
+extern uint8_t        current_display_mode;
+extern uint8_t        sysfont[(128 - ' ') * 8]; // 96*8
+extern uint8_t        font_patterns[256 * 8];
+extern text_colours_t font_color[256];
 
 extern tpoint_t     current_tpos;
 extern trectangle_t tviewport;

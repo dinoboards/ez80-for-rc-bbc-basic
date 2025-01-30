@@ -49,7 +49,6 @@ void vdu_mode() {
     last_text_column         = 63;
     tviewport.right          = 63;
     vdp_set_graphic_5();
-    preload_font_patterns();
     break;
 
   case 1:
@@ -60,7 +59,6 @@ void vdu_mode() {
     last_text_column         = 63;
     tviewport.right          = 63;
     vdp_set_graphic_5();
-    preload_font_patterns();
     break;
 
   case 4:
@@ -71,7 +69,6 @@ void vdu_mode() {
     last_text_column         = 63;
     tviewport.right          = 63;
     vdp_set_graphic_5();
-    preload_font_patterns();
     break;
 
   case 2:
@@ -82,7 +79,6 @@ void vdu_mode() {
     last_text_column         = 31;
     tviewport.right          = 31;
     vdp_set_graphic_4();
-    preload_font_patterns();
     break;
 
   case 5:
@@ -93,7 +89,6 @@ void vdu_mode() {
     last_text_column         = 31;
     tviewport.right          = 31;
     vdp_set_graphic_4();
-    preload_font_patterns();
     break;
 
   case 255:

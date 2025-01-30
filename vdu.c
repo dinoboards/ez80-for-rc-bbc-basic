@@ -213,6 +213,8 @@ static void graphic_print_char(uint8_t ch) {
   const uint16_t from_x = (ch % 32) * 8;
   const uint16_t from_y = 256 + (ch / 32) * 8;
 
+  prepare_font_pattern(ch, from_x, from_y);
+
   vdp_cmd_wait_completion();
   vdp_cmd_logical_move_vram_to_vram(from_x, from_y, gpos.x, gpos.y, 8, 8, 0, 0);
 
