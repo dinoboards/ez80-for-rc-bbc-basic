@@ -41,11 +41,15 @@ void log_info(const char *name,
          name, af, bc, de, hl, af_, bc_, de_, hl_, ix, iy);
   // printf("FREE_FCB_TABLE: %X\r\n", FREE_FCB_TABLE);
   printf("ACCS(%p): %x, %x, %x\r\n", ACCS, ACCS[0], ACCS[1], ACCS[2]);
+  printf("BUFFER(%p): %x, %x, %x\r\n", BUFFER, BUFFER[0], BUFFER[1], BUFFER[2]);
   // for (int i = 0; i < 8; i++) {
   //   printf("  TABLE[%d](%p): %p\r\n", i, &TABLE[i], TABLE[i]);
   // }
 
-  uint8_t *p = (uint8_t *)iy;
+  uint8_t *p = (uint8_t *)ix;
+  printf("*iX: %x %x\r\n", p[0], p[1]);
+
+  p = (uint8_t *)iy;
   printf("*iy: %x %x\r\n", p[0], p[1]);
 
   p = (uint8_t *)hl;

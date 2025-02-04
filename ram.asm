@@ -18,7 +18,9 @@
 
 			XDEF	_ACCS
 			XDEF	ACCS
+			XDEF	_BUFFER
 			XDEF	BUFFER
+			XDEF	BUFFER2
 			XDEF	_STAVAR
 			XDEF	STAVAR
 			XDEF	DYNVAR
@@ -66,8 +68,10 @@
 RAM_START:
 ;
 _ACCS:
-ACCS:			DS		256             ; String Accumulator
-BUFFER:			DS		256             ; String Input Buffer
+ACCS:			DS		256             ; String Accumulator 2 E100
+_BUFFER:
+BUFFER:			DS		256             ; String Input Buffer 2 E200
+BUFFER2:		DS		256             ; String Input Buffer 2 E200
 _STAVAR:
 STAVAR:			DS	 	27*4            ; Static Variables
 DYNVAR: 		DS 		54*3            ; Dynamic Variable Pointers

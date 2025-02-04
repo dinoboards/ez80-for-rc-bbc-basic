@@ -1174,7 +1174,7 @@ INPUT:			CP      '#'
 			JR      NZ,INPUT0
 			INC     IY              ;SKIP "LINE"
 			LD      C,80H
-INPUT0:			LD      HL,BUFFER
+INPUT0:			LD      HL,BUFFER2
 			LD      (HL),CR         ;INITIALISE EMPTY
 INPUT1:			CALL    TERMQ
 			JP      Z,XEQ           ;DONE
@@ -1235,7 +1235,7 @@ REFILL:			BIT     0,C
 			CALL    OUTCHR          ;PROMPT
 			LD      A,' '
 			CALL    OUTCHR
-REFIL0:			LD      HL,BUFFER
+REFIL0:			LD      HL,BUFFER2
 			PUSH    BC
 			PUSH    HL
 			PUSH    IX
