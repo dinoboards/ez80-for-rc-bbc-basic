@@ -3,7 +3,7 @@ Archived.
 
 I have started work on a new version, based on the v5 of BBC Basic.
 
-See [https://github.com/dinoboards/bbcbasic-eZ80-for-rc/tree/dean/converting-to-adl](https://codeberg.org/dinoboards/eZ80-for-rc-basic)
+See [https://codeberg.org/dinoboards/eZ80-for-rc-basic](https://codeberg.org/dinoboards/eZ80-for-rc-basic)
 
 ----
 # BBC BASIC port for ez80-for-rc kit
