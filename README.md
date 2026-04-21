@@ -1,14 +1,14 @@
-# BBC BASIC port for ez80-for-rc kit
-
-A port of BBC Basic for eZ80 to run in ADL mode on the ez80-for-rc RC2014/RCBus kit
-
-### Status
 
 Archived.
 
 I have started work on a new version, based on the v5 of BBC Basic.
 
-See https://github.com/dinoboards/bbcbasic-eZ80-for-rc/tree/dean/converting-to-adl
+See [https://github.com/dinoboards/bbcbasic-eZ80-for-rc/tree/dean/converting-to-adl](https://codeberg.org/dinoboards/eZ80-for-rc-basic)
+
+----
+# BBC BASIC port for ez80-for-rc kit
+
+A port of BBC Basic for eZ80 to run in ADL mode on the ez80-for-rc RC2014/RCBus kit
 
 ### Custom STAR (*) commands
 
